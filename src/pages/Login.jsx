@@ -1,31 +1,37 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Input from "../components/Input";
 import Button from "../components/Button";
 import Alert from "../components/Alert";
+import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState({ type: "", message: "" });
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
-  // Update state saat user mengetik
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-    // Hapus error di field itu saat user mulai mengetik ulang
     setErrors({ ...errors, [e.target.name]: "" });
   };
 
-  // Validasi sebelum submit
   const validate = () => {
     const newErrors = {};
-    if (!form.email) newErrors.email = "Email wajib diisi";
+
+    if (!form.email) {
+      newErrors.email = "Email wajib diisi";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      newErrors.email = "Format email tidak valid";
+    }
+
     if (!form.password) newErrors.password = "Password wajib diisi";
+
     return newErrors;
   };
 
-  // Handle submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
     setAlert({ type: "", message: "" });
@@ -39,18 +45,37 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // SEMENTARA: simulasi login (nanti diganti API asli)
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      // Simulasi: kalau email = test@mail.com dan password = 12345678, sukses
-      if (form.email === "test@mail.com" && form.password === "12345678") {
-        setAlert({ 
-          type: "success", 
-          message: "Login berhasil! (nanti redirect ke dashboard)" 
-        });
-      } else {
+      // Simulasi delay seperti request ke API
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
+      // Ambil daftar user dari localStorage
+      const users = JSON.parse(localStorage.getItem("users") || "[]");
+
+      // Cari user yang cocok email & password
+      const foundUser = users.find(
+        (u) => u.email === form.email && u.password === form.password
+      );
+
+      if (!foundUser) {
         throw new Error("Email atau password salah");
       }
+
+      // Login berhasil → simpan ke AuthContext
+      login("dummy-token-" + Date.now(), {
+        id: foundUser.email,
+        name: foundUser.name,
+        email: foundUser.email,
+      });
+
+      setAlert({
+        type: "success",
+        message: "Login berhasil! Mengarahkan...",
+      });
+
+      // Redirect ke halaman gedung setelah 1 detik
+      setTimeout(() => {
+        navigate("/buildings");
+      }, 1000);
     } catch (err) {
       setAlert({ type: "error", message: err.message });
     } finally {
@@ -64,9 +89,7 @@ export default function Login() {
         <h1 className="text-2xl font-bold text-center text-gray-800 mb-2">
           Cakra Space
         </h1>
-        <p className="text-center text-gray-500 mb-6">
-          Masuk ke akun Anda
-        </p>
+        <p className="text-center text-gray-500 mb-6">Masuk ke akun Anda</p>
 
         <Alert type={alert.type} message={alert.message} />
 
@@ -93,9 +116,9 @@ export default function Login() {
             required
           />
 
-          <Button 
-            type="submit" 
-            variant="primary" 
+          <Button
+            type="submit"
+            variant="primary"
             loading={loading}
             className="w-full"
           >
@@ -105,7 +128,10 @@ export default function Login() {
 
         <p className="text-center text-sm text-gray-600 mt-6">
           Belum punya akun?{" "}
-          <Link to="/register" className="text-blue-600 hover:underline font-medium">
+          <Link
+            to="/register"
+            className="text-blue-600 hover:underline font-medium"
+          >
             Daftar di sini
           </Link>
         </p>

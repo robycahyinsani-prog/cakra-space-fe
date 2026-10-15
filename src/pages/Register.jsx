@@ -58,21 +58,44 @@ export default function Register() {
     setLoading(true);
 
     try {
-      // SEMENTARA: simulasi register (nanti diganti API asli)
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Simulasi delay seperti request ke API
+      await new Promise((resolve) => setTimeout(resolve, 800));
 
-      // Simulasi sukses
+      // Ambil daftar user yang sudah ada di localStorage
+      const users = JSON.parse(localStorage.getItem("users") || "[]");
+
+      // Cek apakah email sudah terdaftar
+      const existingUser = users.find((u) => u.email === form.email);
+      if (existingUser) {
+        setAlert({
+          type: "error",
+          message: "Email sudah terdaftar. Silakan login.",
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Simpan user baru ke localStorage
+      users.push({
+        name: form.name,
+        email: form.email,
+        password: form.password, // CATATAN: di produksi harus di-hash di server
+        createdAt: new Date().toISOString(),
+      });
+      localStorage.setItem("users", JSON.stringify(users));
+
+      // Tampilkan sukses
       setAlert({
         type: "success",
         message: "Registrasi berhasil! Mengarahkan ke halaman login...",
       });
 
-      // Tunggu 1.5 detik, lalu redirect ke login
+      // Redirect ke login setelah 1.5 detik
       setTimeout(() => {
         navigate("/login");
       }, 1500);
     } catch (err) {
-      setAlert({ type: "error", message: err.message });
+      setAlert({ type: "error", message: err.message || "Registrasi gagal" });
     } finally {
       setLoading(false);
     }
@@ -146,7 +169,10 @@ export default function Register() {
 
         <p className="text-center text-sm text-gray-600 mt-6">
           Sudah punya akun?{" "}
-          <Link to="/login" className="text-blue-600 hover:underline font-medium">
+          <Link
+            to="/login"
+            className="text-blue-600 hover:underline font-medium"
+          >
             Login di sini
           </Link>
         </p>
