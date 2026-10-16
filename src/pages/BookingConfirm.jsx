@@ -16,10 +16,10 @@ const booking = bookings.find((b) => String(b.id) === String(id));
   // Kalau booking tidak ditemukan
   if (!booking) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-cream-50">
         <Navbar />
         <div className="max-w-3xl mx-auto p-8 text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">
+          <h1 className="text-2xl font-bold text-brown-900 mb-4">
             Booking tidak ditemukan
           </h1>
           <Button onClick={() => navigate("/buildings")}>
@@ -31,7 +31,7 @@ const booking = bookings.find((b) => String(b.id) === String(id));
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-cream-50">
       <Navbar />
 
       <div className="max-w-2xl mx-auto p-6">
@@ -39,19 +39,19 @@ const booking = bookings.find((b) => String(b.id) === String(id));
         <Alert type="success" message="Booking berhasil dibuat!" />
 
         {/* Card Konfirmasi */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-cream-200 p-6">
           <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">
+            <h1 className="text-2xl font-bold text-brown-900 mb-2">
               Konfirmasi Booking
             </h1>
-            <p className="text-gray-500 text-sm">
+            <p className="text-brown-600 text-sm">
               Tunjukkan QR code ini di resepsionis saat check-in
             </p>
           </div>
 
           {/* QR Code */}
           <div className="flex justify-center mb-6">
-            <div className="bg-white p-4 border-2 border-gray-200 rounded-xl">
+            <div className="bg-white p-4 border-2 border-cream-200 rounded-xl">
               <QRCode
                 value={booking.code}
                 size={180}
@@ -63,29 +63,29 @@ const booking = bookings.find((b) => String(b.id) === String(id));
 
           {/* Kode Booking */}
           <div className="text-center mb-6">
-            <p className="text-sm text-gray-500 mb-1">Kode Booking</p>
-            <p className="text-xl font-bold text-gray-800 tracking-wider">
+            <p className="text-sm text-brown-600 mb-1">Kode Booking</p>
+            <p className="text-xl font-bold text-brown-900 tracking-wider">
               {booking.code}
             </p>
           </div>
 
           {/* Detail Booking */}
-          <div className="border-t border-gray-200 pt-6 space-y-3">
+          <div className="border-t border-cream-200 pt-6 space-y-3">
             <div className="flex justify-between">
-              <span className="text-sm text-gray-500">Nama Ruang</span>
-              <span className="text-sm font-medium text-gray-800 text-right">
+              <span className="text-sm text-brown-600">Nama Ruang</span>
+              <span className="text-sm font-medium text-brown-900 text-right">
                 {booking.roomName}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-gray-500">Gedung</span>
-              <span className="text-sm font-medium text-gray-800 text-right">
+              <span className="text-sm text-brown-600">Gedung</span>
+              <span className="text-sm font-medium text-brown-900 text-right">
                 {booking.buildingName}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-gray-500">Tanggal</span>
-              <span className="text-sm font-medium text-gray-800 text-right">
+              <span className="text-sm text-brown-600">Tanggal</span>
+              <span className="text-sm font-medium text-brown-900 text-right">
                 {new Date(booking.date).toLocaleDateString("id-ID", {
                   weekday: "long",
                   year: "numeric",
@@ -95,22 +95,22 @@ const booking = bookings.find((b) => String(b.id) === String(id));
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-gray-500">Jam Mulai</span>
-              <span className="text-sm font-medium text-gray-800 text-right">
+              <span className="text-sm text-brown-600">Jam Mulai</span>
+              <span className="text-sm font-medium text-brown-900 text-right">
                 {booking.startTime}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-gray-500">Durasi</span>
-              <span className="text-sm font-medium text-gray-800 text-right">
+              <span className="text-sm text-brown-600">Durasi</span>
+              <span className="text-sm font-medium text-brown-900 text-right">
                 {booking.duration} jam
               </span>
             </div>
-            <div className="flex justify-between border-t border-gray-200 pt-3">
-              <span className="text-sm font-semibold text-gray-700">
+            <div className="flex justify-between border-t border-cream-200 pt-3">
+              <span className="text-sm font-semibold text-brown-800">
                 Total Bayar
               </span>
-              <span className="text-lg font-bold text-blue-600">
+              <span className="text-lg font-bold text-brown-500">
                 Rp {booking.total.toLocaleString("id-ID")}
               </span>
             </div>

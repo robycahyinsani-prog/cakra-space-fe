@@ -102,12 +102,12 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-cream-50 flex items-center justify-center p-4">
       <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center text-gray-800 mb-2">
+        <h1 className="text-2xl font-bold text-center text-brown-900 mb-2">
           Daftar Akun Cakra Space
         </h1>
-        <p className="text-center text-gray-500 mb-6">
+        <p className="text-center text-brown-600 mb-6">
           Buat akun untuk mulai memesan meja & ruang rapat
         </p>
 
@@ -167,11 +167,11 @@ export default function Register() {
           </Button>
         </form>
 
-        <p className="text-center text-sm text-gray-600 mt-6">
+        <p className="text-center text-sm text-brown-700 mt-6">
           Sudah punya akun?{" "}
           <Link
             to="/login"
-            className="text-blue-600 hover:underline font-medium"
+            className="text-brown-500 hover:underline font-medium"
           >
             Login di sini
           </Link>

@@ -23,26 +23,26 @@ const pastBookings = bookings.filter(
     activeTab === "upcoming" ? upcomingBookings : pastBookings;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-cream-50">
       <Navbar />
 
       <div className="max-w-4xl mx-auto p-6">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Booking Saya</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-brown-900">Booking Saya</h1>
+          <p className="text-brown-600 mt-1">
             Lihat dan kelola semua booking Anda
           </p>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-200 mb-6">
+        <div className="flex border-b border-cream-200 mb-6">
           <button
             onClick={() => setActiveTab("upcoming")}
             className={`px-4 py-2 font-medium text-sm transition-colors ${
               activeTab === "upcoming"
-                ? "border-b-2 border-blue-600 text-blue-600"
-                : "text-gray-500 hover:text-gray-700"
+                ? "border-b-2 border-blue-600 text-brown-500"
+                : "text-brown-600 hover:text-brown-800"
             }`}
           >
             Akan Datang ({upcomingBookings.length})
@@ -51,8 +51,8 @@ const pastBookings = bookings.filter(
             onClick={() => setActiveTab("past")}
             className={`px-4 py-2 font-medium text-sm transition-colors ${
               activeTab === "past"
-                ? "border-b-2 border-blue-600 text-blue-600"
-                : "text-gray-500 hover:text-gray-700"
+                ? "border-b-2 border-blue-600 text-brown-500"
+                : "text-brown-600 hover:text-brown-800"
             }`}
           >
             Riwayat ({pastBookings.length})
@@ -61,8 +61,8 @@ const pastBookings = bookings.filter(
 
         {/* Daftar Booking */}
         {displayedBookings.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
-            <p className="text-gray-500 mb-4">
+          <div className="bg-white rounded-xl shadow-sm border border-cream-200 p-12 text-center">
+            <p className="text-brown-600 mb-4">
               {activeTab === "upcoming"
                 ? "Belum ada booking yang akan datang."
                 : "Belum ada riwayat booking."}
@@ -76,13 +76,13 @@ const pastBookings = bookings.filter(
             {displayedBookings.map((booking) => (
               <div
                 key={booking.id}
-                className="bg-white rounded-xl shadow-sm border border-gray-100 p-5"
+                className="bg-white rounded-xl shadow-sm border border-cream-200 p-5"
               >
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   {/* Info Booking */}
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <h3 className="font-semibold text-gray-800">
+                      <h3 className="font-semibold text-brown-900">
                         {booking.roomName}
                       </h3>
                       <span
@@ -102,11 +102,11 @@ const pastBookings = bookings.filter(
                       </span>
                     </div>
 
-                    <p className="text-sm text-gray-500 mb-1">
+                    <p className="text-sm text-brown-600 mb-1">
                       {booking.buildingName}
                     </p>
 
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 mt-2">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-brown-700 mt-2">
                       <span>
                         📅{" "}
                         {new Date(booking.date).toLocaleDateString("id-ID", {
@@ -120,14 +120,14 @@ const pastBookings = bookings.filter(
                       <span>⏱️ {booking.duration} jam</span>
                     </div>
 
-                    <p className="text-sm text-gray-500 mt-2">
+                    <p className="text-sm text-brown-600 mt-2">
                       Kode:{" "}
-                      <span className="font-mono font-medium text-gray-700">
+                      <span className="font-mono font-medium text-brown-800">
                         {booking.code}
                       </span>
                     </p>
 
-                    <p className="text-lg font-bold text-blue-600 mt-2">
+                    <p className="text-lg font-bold text-brown-500 mt-2">
                       Rp {booking.total.toLocaleString("id-ID")}
                     </p>
                   </div>

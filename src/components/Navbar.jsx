@@ -24,10 +24,10 @@ export default function Navbar() {
   ];
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+    <nav className="bg-white shadow-sm border-b border-cream-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="text-xl font-bold text-blue-600">
+        <Link to="/" className="text-xl font-bold text-brown-500">
           Cakra Space
         </Link>
 
@@ -42,8 +42,8 @@ export default function Navbar() {
                   to={link.to}
                   className={`flex items-center gap-1.5 text-sm font-medium transition-colors ${
                     isActive(link.to)
-                      ? "text-blue-600"
-                      : "text-gray-600 hover:text-blue-600"
+                      ? "text-brown-500"
+                      : "text-brown-700 hover:text-brown-500"
                   }`}
                 >
                   <Icon size={16} />
@@ -58,12 +58,12 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-3">
           {isAuthenticated ? (
             <>
-              <span className="text-sm text-gray-600">
-                Halo, <strong className="text-gray-800">{user?.name}</strong>
+              <span className="text-sm text-brown-700">
+                Halo, <strong className="text-brown-900">{user?.name}</strong>
               </span>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-red-600 transition-colors"
+                className="flex items-center gap-1.5 text-sm text-brown-700 hover:text-red-600 transition-colors"
               >
                 <LogOut size={16} />
                 Logout
@@ -83,7 +83,7 @@ export default function Navbar() {
 
         {/* Mobile Menu Button */}
         <button
-          className="md:hidden text-gray-600"
+          className="md:hidden text-brown-700"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         >
           {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -92,7 +92,7 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-gray-200 bg-white px-4 py-3 space-y-2">
+        <div className="md:hidden border-t border-cream-200 bg-white px-4 py-3 space-y-2">
           {isAuthenticated ? (
             <>
               {navLinks.map((link) => {
@@ -103,7 +103,7 @@ export default function Navbar() {
                     to={link.to}
                     onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center gap-2 py-2 text-sm font-medium ${
-                      isActive(link.to) ? "text-blue-600" : "text-gray-600"
+                      isActive(link.to) ? "text-brown-500" : "text-brown-700"
                     }`}
                   >
                     <Icon size={18} />
@@ -111,8 +111,8 @@ export default function Navbar() {
                   </Link>
                 );
               })}
-              <div className="border-t border-gray-200 pt-2 flex items-center justify-between">
-                <span className="text-sm text-gray-600">
+              <div className="border-t border-cream-200 pt-2 flex items-center justify-between">
+                <span className="text-sm text-brown-700">
                   Halo, <strong>{user?.name}</strong>
                 </span>
                 <button
