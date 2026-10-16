@@ -74,8 +74,8 @@ export default function Login() {
 
       // Redirect ke halaman gedung setelah 1 detik
       setTimeout(() => {
-        navigate("/buildings");
-      }, 1000);
+  navigate("/dashboard");
+}, 1000);
     } catch (err) {
       setAlert({ type: "error", message: err.message });
     } finally {

@@ -3,14 +3,15 @@ import QRCode from "react-qr-code";
 import Navbar from "../components/Navbar";
 import Button from "../components/Button";
 import Alert from "../components/Alert";
-import { mockBookings } from "../utils/mockData";
+import { getBookings } from "../utils/storage";
 
 export default function BookingConfirm() {
   const { id } = useParams();
   const navigate = useNavigate();
 
   // Cari booking berdasarkan id
-  const booking = mockBookings.find((b) => b.id === Number(id));
+const bookings = getBookings();
+const booking = bookings.find((b) => String(b.id) === String(id));
 
   // Kalau booking tidak ditemukan
   if (!booking) {

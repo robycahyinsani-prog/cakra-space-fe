@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Button from "../components/Button";
-import { mockBookings } from "../utils/mockData";
+import { getBookings } from "../utils/storage";
 
 export default function MyBookings() {
   const [activeTab, setActiveTab] = useState("upcoming");
@@ -10,13 +10,14 @@ export default function MyBookings() {
   // Pisahkan booking berdasarkan tanggal
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+const bookings = getBookings();
 
-  const upcomingBookings = mockBookings.filter(
-    (b) => new Date(b.date) >= today && b.status !== "cancelled"
-  );
-  const pastBookings = mockBookings.filter(
-    (b) => new Date(b.date) < today || b.status === "cancelled"
-  );
+const upcomingBookings = bookings.filter(
+  (b) => new Date(b.date) >= today && b.status !== "cancelled"
+);
+const pastBookings = bookings.filter(
+  (b) => new Date(b.date) < today || b.status === "cancelled"
+);
 
   const displayedBookings =
     activeTab === "upcoming" ? upcomingBookings : pastBookings;

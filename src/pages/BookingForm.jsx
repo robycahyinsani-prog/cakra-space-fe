@@ -4,7 +4,8 @@ import Navbar from "../components/Navbar";
 import Input from "../components/Input";
 import Button from "../components/Button";
 import Alert from "../components/Alert";
-import { mockBuildings, mockRooms, mockBookings } from "../utils/mockData";
+import { mockBuildings, mockRooms } from "../utils/mockData";
+import { addBooking } from "../utils/storage";
 
 export default function BookingForm() {
   const { roomId } = useParams();
@@ -80,19 +81,23 @@ export default function BookingForm() {
     const bookingCode = `BK-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 
       // Simpan booking ke mock (nanti diganti API)
-      const newBooking = {
-        id: mockBookings.length + 1,
-        code: bookingCode,
-        roomId: room.id,
-        roomName: room.name,
-        buildingName: building.name,
-        date: form.date,
-        startTime: form.startTime,
-        duration: form.duration,
-        total: total,
-        status: "confirmed",
-      };
-      mockBookings.push(newBooking);
+    const newBooking = {
+  id: crypto.randomUUID(),  // UUID unik
+  code: bookingCode,
+  roomId: room.id,
+  roomName: room.name,
+  buildingName: building.name,
+  date: form.date,
+  startTime: form.startTime,
+  duration: form.duration,
+  total: total,
+  status: "confirmed",
+  createdAt: new Date().toISOString(),
+};
+
+// Simpan ke localStorage
+addBooking(newBooking);
+      addBooking(newBooking);
 
       // Redirect ke halaman konfirmasi
       navigate(`/booking/confirm/${newBooking.id}`);
