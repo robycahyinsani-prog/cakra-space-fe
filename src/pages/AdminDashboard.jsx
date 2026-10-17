@@ -81,8 +81,8 @@ export default function AdminDashboard() {
                     </td>
                   </tr>
                 ) : (
-                  bookings.map((b) => (
-                    <tr key={b.id} className="hover:bg-cream-50 transition-colors">
+                  bookings.map((b, index) => (
+                    <tr key={`${b.id}-${index}`} className="hover:bg-cream-50 transition-colors">
                       <td className="p-4 text-sm font-medium text-brown-900">{b.code}</td>
                       <td className="p-4 text-sm text-brown-700">{b.userId}</td>
                       <td className="p-4 text-sm text-brown-700">
