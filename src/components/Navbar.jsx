@@ -6,6 +6,7 @@ import Button from "./Button";
 
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
+  const isAdmin = user?.role === "admin";
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -17,11 +18,15 @@ export default function Navbar() {
 
   const isActive = (path) => location.pathname === path;
 
-  const navLinks = [
-    { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { to: "/buildings", label: "Gedung", icon: Building2 },
-    { to: "/my-bookings", label: "Booking Saya", icon: CalendarCheck },
-  ];
+const navLinks = isAdmin
+  ? [
+      { to: "/admin-dashboard", label: "Admin Dashboard", icon: LayoutDashboard },
+    ]
+  : [
+      { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { to: "/buildings", label: "Gedung", icon: Building2 },
+      { to: "/my-bookings", label: "Booking Saya", icon: CalendarCheck },
+    ];
 
   return (
     <nav className="bg-white shadow-sm border-b border-cream-200 sticky top-0 z-50">

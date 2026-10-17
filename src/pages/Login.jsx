@@ -20,15 +20,12 @@ export default function Login() {
 
   const validate = () => {
     const newErrors = {};
-
     if (!form.email) {
       newErrors.email = "Email wajib diisi";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       newErrors.email = "Format email tidak valid";
     }
-
     if (!form.password) newErrors.password = "Password wajib diisi";
-
     return newErrors;
   };
 
@@ -60,11 +57,12 @@ export default function Login() {
         throw new Error("Email atau password salah");
       }
 
-      // Login berhasil → simpan ke AuthContext
+      // Login berhasil → simpan ke AuthContext (termasuk role)
       login("dummy-token-" + Date.now(), {
         id: foundUser.email,
         name: foundUser.name,
         email: foundUser.email,
+        role: foundUser.role || "member",
       });
 
       setAlert({
@@ -72,10 +70,15 @@ export default function Login() {
         message: "Login berhasil! Mengarahkan...",
       });
 
-      // Redirect ke halaman gedung setelah 1 detik
+      // Redirect berdasarkan role
       setTimeout(() => {
-  navigate("/dashboard");
-}, 1000);
+        if (foundUser.role === "admin") {
+          navigate("/admin-dashboard");
+        } else {
+          navigate("/dashboard");
+        }
+      }, 1000);
+      
     } catch (err) {
       setAlert({ type: "error", message: err.message });
     } finally {
@@ -85,7 +88,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-cream-50 flex items-center justify-center p-4">
-      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
+      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md border border-cream-200">
         <h1 className="text-2xl font-bold text-center text-brown-900 mb-2">
           Cakra Space
         </h1>
@@ -120,7 +123,7 @@ export default function Login() {
             type="submit"
             variant="primary"
             loading={loading}
-            className="w-full"
+            className="w-full mt-2"
           >
             Login
           </Button>

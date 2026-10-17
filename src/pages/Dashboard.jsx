@@ -3,27 +3,28 @@ import { CalendarCheck, Clock, Wallet, MapPin, TrendingUp, ArrowRight } from "lu
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
 import { getBookings } from "../utils/storage";
-import { mockBuildings } from "../utils/mockData";
 
 export default function Dashboard() {
   const { user } = useAuth();
 
-  // Filter booking user (di prototype ini, anggap semua booking milik user)
+  // Ambil semua booking, lalu filter berdasarkan user yang login
+  const allBookings = getBookings();
+  const bookings = allBookings.filter((b) => b.userId === user?.email);
+
+  // Filter booking yang akan datang
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-const bookings = getBookings();
-
-const upcomingBookings = bookings
-  .filter((b) => new Date(b.date) >= today && b.status !== "cancelled")
-  .sort((a, b) => new Date(a.date) - new Date(b.date));
+  const upcomingBookings = bookings
+    .filter((b) => new Date(b.date) >= today && b.status !== "cancelled")
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
 
   const nextBooking = upcomingBookings[0];
 
   // Statistik
   const totalBookings = bookings.length;
-const totalHours = bookings.reduce((sum, b) => sum + b.duration, 0);
-const totalSpent = bookings.reduce((sum, b) => sum + b.total, 0);
+  const totalHours = bookings.reduce((sum, b) => sum + b.duration, 0);
+  const totalSpent = bookings.reduce((sum, b) => sum + b.total, 0);
 
   return (
     <div className="min-h-screen bg-cream-50">
@@ -45,7 +46,7 @@ const totalSpent = bookings.reduce((sum, b) => sum + b.total, 0);
           <div className="bg-white rounded-xl shadow-sm border border-cream-200 p-5">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <CalendarCheck className="text-brown-500" size={20} />
+                <CalendarCheck className="text-blue-600" size={20} />
               </div>
               <div>
                 <p className="text-sm text-brown-600">Total Booking</p>
@@ -95,7 +96,7 @@ const totalSpent = bookings.reduce((sum, b) => sum + b.total, 0);
                     <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
                       Confirmed
                     </span>
-                    <span className="text-xs text-brown-600">
+                    <span className="text-xs text-brown-500">
                       Kode: {nextBooking.code}
                     </span>
                   </div>
@@ -121,7 +122,7 @@ const totalSpent = bookings.reduce((sum, b) => sum + b.total, 0);
                 </div>
                 <Link
                   to={`/booking/confirm/${nextBooking.id}`}
-                  className="text-brown-500 hover:text-brown-500 font-medium text-sm flex items-center gap-1"
+                  className="text-brown-500 hover:text-brown-600 font-medium text-sm flex items-center gap-1"
                 >
                   Lihat QR
                   <ArrowRight size={16} />
@@ -151,12 +152,11 @@ const totalSpent = bookings.reduce((sum, b) => sum + b.total, 0);
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Link
               to="/buildings"
-              className="bg-white rounded-xl shadow-sm border border-cream-200 p-5 hover:shadow-md hover:border-tan-300
- transition-all group"
+              className="bg-white rounded-xl shadow-sm border border-cream-200 p-5 hover:shadow-md hover:border-tan-300 transition-all group"
             >
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                  <MapPin className="text-brown-500" size={22} />
+                  <MapPin className="text-blue-600" size={22} />
                 </div>
                 <div>
                   <h3 className="font-semibold text-brown-900">Cari Ruang</h3>
@@ -169,8 +169,7 @@ const totalSpent = bookings.reduce((sum, b) => sum + b.total, 0);
 
             <Link
               to="/my-bookings"
-              className="bg-white rounded-xl shadow-sm border border-cream-200 p-5 hover:shadow-md hover:border-tan-300
- transition-all group"
+              className="bg-white rounded-xl shadow-sm border border-cream-200 p-5 hover:shadow-md hover:border-tan-300 transition-all group"
             >
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">

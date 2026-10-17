@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Button from "../components/Button";
 import { getBookings } from "../utils/storage";
+import { useAuth } from "../context/AuthContext";
 
 export default function MyBookings() {
   const [activeTab, setActiveTab] = useState("upcoming");
@@ -10,7 +11,11 @@ export default function MyBookings() {
   // Pisahkan booking berdasarkan tanggal
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-const bookings = getBookings();
+const { user } = useAuth();
+const allBookings = getBookings();
+
+// Filter hanya booking milik user yang login
+const bookings = allBookings.filter((b) => b.userId === user?.email);
 
 const upcomingBookings = bookings.filter(
   (b) => new Date(b.date) >= today && b.status !== "cancelled"

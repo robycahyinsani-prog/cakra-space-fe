@@ -6,11 +6,12 @@ import Button from "../components/Button";
 import Alert from "../components/Alert";
 import { mockBuildings, mockRooms } from "../utils/mockData";
 import { addBooking } from "../utils/storage";
+import { useAuth } from "../context/AuthContext";
 
 export default function BookingForm() {
   const { roomId } = useParams();
   const navigate = useNavigate();
-
+  const { user } = useAuth();
   const room = mockRooms.find((r) => r.id === Number(roomId));
   const building = room ? mockBuildings.find((b) => b.id === room.buildingId) : null;
 
@@ -63,6 +64,7 @@ export default function BookingForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return; 
     setAlert({ type: "", message: "" });
 
     const validation = validate();
@@ -81,8 +83,9 @@ export default function BookingForm() {
     const bookingCode = `BK-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 
       // Simpan booking ke mock (nanti diganti API)
-    const newBooking = {
-  id: crypto.randomUUID(),  // UUID unik
+  const newBooking = {
+  id: crypto.randomUUID(),
+  userId: user?.email,  // ← TAMBAH INI
   code: bookingCode,
   roomId: room.id,
   roomName: room.name,

@@ -33,6 +33,7 @@ import BuildingDetail from "./pages/BuildingDetail";
 import BookingForm from "./pages/BookingForm";
 import BookingConfirm from "./pages/BookingConfirm";
 import MyBookings from "./pages/MyBookings";
+import AdminDashboard from "./pages/AdminDashboard";
 
 export default function App() {
   return (
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="/booking/:roomId" element={<BookingForm />} />
         <Route path="/booking/confirm/:id" element={<BookingConfirm />} />
         <Route path="/my-bookings" element={<MyBookings />} />
+        <Route path="/admin-dashboard" element={<AdminDashboard />} />
       </Routes>
     </BrowserRouter>
   );

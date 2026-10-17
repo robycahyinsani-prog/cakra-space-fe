@@ -10,6 +10,7 @@ export default function Register() {
     email: "",
     password: "",
     confirm: "",
+    role:"member"
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -80,6 +81,7 @@ export default function Register() {
         name: form.name,
         email: form.email,
         password: form.password, // CATATAN: di produksi harus di-hash di server
+        role: form.role,
         createdAt: new Date().toISOString(),
       });
       localStorage.setItem("users", JSON.stringify(users));
@@ -156,6 +158,23 @@ export default function Register() {
             error={errors.confirm}
             required
           />
+                    {/* Dropdown Pilihan Role */}
+          <div className="mb-4">
+            <label htmlFor="role" className="block text-sm font-medium text-brown-800 mb-1">
+              Daftar Sebagai <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="role"
+              name="role"
+              value={form.role}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-tan-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brown-500 bg-white text-brown-900"
+              required
+            >
+              <option value="member">Member (Penyewa)</option>
+              <option value="admin">Admin (Pengelola)</option>
+            </select>
+          </div>
 
           <Button
             type="submit"
