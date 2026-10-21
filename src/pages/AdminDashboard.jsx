@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CalendarCheck, DoorOpen, Clock, Gauge } from "lucide-react";
+import { CalendarCheck, DoorOpen, Clock, Gauge, CircleCheck, CircleX, QrCode } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Button from "../components/Button";
 import PageState from "../components/common/PageState";
@@ -9,24 +9,55 @@ import { useAuth } from "../context/AuthContext";
 import Format from "../utils/Format";
 import { api } from "../api";
 
+// setiap bagian hanya tampil kalau peran staf punya hak aksesnya (BE-33)
 export default function AdminDashboard() {
   const { user } = useAuth();
+  const can = (permission) => Boolean(user?.permissions?.includes(permission));
+
+  const buildings = useResource(() => api.buildings.list(), []);
+  const [buildingId, setBuildingId] = useState(null);
+  // pengelola pusat melihat semua gedung, staf lain hanya gedung tugasnya
+  const pilihan = (buildings.data || []).filter(
+    (b) => user.role === "central_manager" || user.building_ids.includes(b.id)
+  );
+  const aktif = buildingId ?? pilihan[0]?.id ?? null;
+  const gedung = pilihan.find((b) => b.id === aktif);
 
   return (
     <div className="min-h-screen bg-cream-50">
       <Navbar />
 
       <div className="max-w-7xl mx-auto p-6 space-y-8">
-        <div>
-          <h1 className="text-2xl font-bold text-brown-900">Dashboard Pengelola</h1>
-          <p className="text-brown-600 mt-1">
-            {user?.name} · {user?.role_name}
-          </p>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-brown-900">Dashboard Pengelola</h1>
+            <p className="text-brown-600 mt-1">
+              {user?.name} · {user?.role_name}
+            </p>
+          </div>
+          {pilihan.length > 1 && (
+            <select
+              value={aktif ?? ""}
+              onChange={(e) => setBuildingId(Number(e.target.value))}
+              aria-label="Pilih gedung"
+              className="px-3 py-2 border border-tan-300 rounded-lg bg-white text-brown-900 text-sm focus:outline-none focus:ring-2 focus:ring-tan-300"
+            >
+              {pilihan.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
-        <OperationalSummary />
-        <BookingCalendar />
-        <RefundQueue />
+        {can("reports.view") && <OperationalSummary />}
+        {can("access.scan") && aktif && <AccessCheck buildingId={aktif} buildingName={gedung?.name} />}
+        <PageState loading={buildings.loading} error={buildings.error} onRetry={buildings.reload}>
+          {aktif && can("bookings.calendar") && <BookingList buildingId={aktif} days={7} />}
+          {aktif && !can("bookings.calendar") && can("bookings.today") && <BookingList buildingId={aktif} days={1} />}
+        </PageState>
+        {can("refunds.manage") && <RefundQueue />}
       </div>
     </div>
   );
@@ -80,48 +111,85 @@ function OperationalSummary() {
   );
 }
 
-// daftar booking satu gedung untuk 7 hari ke depan (BE-21)
-function BookingCalendar() {
-  const { user } = useAuth();
-  const buildings = useResource(() => api.buildings.list(), []);
-  const [buildingId, setBuildingId] = useState(null);
+// validasi QR member atau tamu di meja resepsionis; pemindai QR USB mengetik token ke input ini
+function AccessCheck({ buildingId, buildingName }) {
+  const [token, setToken] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [hasil, setHasil] = useState(null);
 
-  // pengelola pusat melihat semua gedung, staf lain hanya gedung tugasnya
-  const pilihan = (buildings.data || []).filter(
-    (b) => user.role === "central_manager" || user.building_ids.includes(b.id)
+  const periksa = async (e) => {
+    e.preventDefault();
+    if (!token.trim()) return;
+    setBusy(true);
+    try {
+      setHasil(await api.manage.validateAccess(token.trim(), buildingId));
+      setToken("");
+    } catch (err) {
+      setHasil({ result: "error", reason: err.message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const diizinkan = hasil?.result === "granted";
+  return (
+    <section>
+      <h2 className="text-lg font-semibold text-brown-900 mb-3">Validasi QR Akses</h2>
+      <div className="bg-white rounded-xl shadow-sm border border-cream-200 p-5">
+        <form onSubmit={periksa} className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            <QrCode size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-brown-500" />
+            <input
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+              placeholder={`Pindai atau ketik token QR di ${buildingName || "gedung ini"}`}
+              aria-label="Token QR"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-tan-300 rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-tan-300"
+            />
+          </div>
+          <Button type="submit" loading={busy} disabled={!token.trim()}>
+            Periksa
+          </Button>
+        </form>
+        {hasil && (
+          <div
+            className={`mt-4 flex items-start gap-3 rounded-lg border p-3 text-sm ${
+              diizinkan ? "bg-green-50 border-green-200 text-green-900" : "bg-red-50 border-red-200 text-red-900"
+            }`}
+            role="status"
+          >
+            {diizinkan ? <CircleCheck size={20} className="flex-none" /> : <CircleX size={20} className="flex-none" />}
+            <div>
+              <p className="font-semibold">
+                {diizinkan ? "Akses diizinkan" : "Akses ditolak"}
+                {hasil.name ? ` · ${hasil.name}` : ""}
+              </p>
+              <p>{hasil.reason}</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
   );
-  const aktif = buildingId ?? pilihan[0]?.id ?? null;
+}
+
+// booking satu gedung: 7 hari ke depan (BE-21) atau hari ini saja untuk resepsionis
+function BookingList({ buildingId, days }) {
   const today = new Date();
   const dari = Format.isoDate(today);
-  const sampai = Format.isoDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 6));
-
-  const bookings = useResource(
-    () => (aktif ? api.manage.bookings(aktif, dari, sampai) : Promise.resolve(null)),
-    [aktif, dari, sampai]
+  const sampai = Format.isoDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() + days - 1));
+  const { data, error, loading, reload } = useResource(
+    () => (days === 1 ? api.manage.bookingsToday(buildingId) : api.manage.bookings(buildingId, dari, sampai)),
+    [buildingId, days, dari, sampai]
   );
-  const items = bookings.data?.items || [];
+  const items = data?.items || [];
 
   return (
     <section>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-        <h2 className="text-lg font-semibold text-brown-900">Booking 7 Hari ke Depan</h2>
-        {pilihan.length > 0 && (
-          <select
-            value={aktif ?? ""}
-            onChange={(e) => setBuildingId(Number(e.target.value))}
-            aria-label="Pilih gedung"
-            className="px-3 py-2 border border-tan-300 rounded-lg bg-white text-brown-900 text-sm focus:outline-none focus:ring-2 focus:ring-tan-300"
-          >
-            {pilihan.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
-
-      <PageState loading={buildings.loading || bookings.loading} error={buildings.error || bookings.error} onRetry={bookings.reload}>
+      <h2 className="text-lg font-semibold text-brown-900 mb-3">
+        {days === 1 ? "Booking Hari Ini" : `Booking ${days} Hari ke Depan`}
+      </h2>
+      <PageState loading={loading} error={error} onRetry={reload}>
         <div className="bg-white rounded-xl shadow-sm border border-cream-200 overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>

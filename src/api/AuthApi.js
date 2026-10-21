@@ -38,6 +38,15 @@ export default class AuthApi {
     });
   }
 
+  // juga dipakai staf baru untuk mengganti password sementara, respons berisi token baru
+  changePassword(current, password, confirm) {
+    return this.client.post("/auth/change-password", {
+      current_password: current,
+      new_password: password,
+      password_confirmation: confirm,
+    });
+  }
+
   logout() {
     return this.client.post("/auth/logout");
   }

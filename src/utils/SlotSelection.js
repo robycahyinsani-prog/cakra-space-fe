@@ -19,8 +19,10 @@ export default class SlotSelection {
     return { start_time: slots[this.start].start_time, end_time: slots[this.last].end_time };
   }
 
+  // rentang yang melewati jam tutup (di luar array) juga dianggap tidak tersedia
   static allAvailable(slots, start, length) {
-    return slots.slice(start, start + length).every((s) => s?.status === "available");
+    if (start < 0 || start + length > slots.length) return false;
+    return slots.slice(start, start + length).every((s) => s.status === "available");
   }
 
   // klik pertama memilih satu jam, klik jam lain memperluas rentang selama jam di antaranya kosong,
@@ -37,6 +39,11 @@ export default class SlotSelection {
     const length = Math.max(sel.last, index) - start + 1;
     if (SlotSelection.allAvailable(slots, start, length)) return new SlotSelection(areaId, start, length);
     return new SlotSelection(areaId, index, 1);
+  }
+
+  // reschedule: durasi tetap, klik jam mulai langsung memilih blok sepanjang durasi booking awal
+  static block(areaId, index, length, slots) {
+    return SlotSelection.allAvailable(slots, index, length) ? new SlotSelection(areaId, index, length) : null;
   }
 
   // pilihan dari query URL (setelah kembali dari login) dipulihkan kalau slotnya masih kosong

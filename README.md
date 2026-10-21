@@ -43,6 +43,15 @@ diarahkan ke `/dashboard` dan staf ke `/admin-dashboard`.
 4. `POST /bookings` menahan slot 15 menit, lalu halaman `/booking/confirm/:id` menampilkan pilihan metode bayar.
    Status pembayaran dipantau otomatis. Saat `npm run dev` ada tombol untuk mensimulasikan notifikasi gateway sandbox.
 5. Setelah terkonfirmasi, halaman yang sama menampilkan QR akses, invoice PDF dan tombol pembatalan.
+6. Tombol **Ubah Jadwal** membuka grid yang sama dengan `?reschedule=<id>`. Hanya ruang yang sama yang tampil dan
+   durasinya tetap, jadi cukup klik jam mulai baru.
+
+## Akun staf
+
+Staf baru dibuat pengelola pusat lewat `POST /staff` dengan password sementara. Login pertama langsung diarahkan
+ke `/change-password` dan halaman lain tertutup sampai password diganti. Isi dashboard pengelola mengikuti
+`user.permissions`. Resepsionis hanya melihat validasi QR dan booking hari ini. Pengelola pusat juga melihat
+ringkasan operasional, booking 7 hari dan antrean refund.
 
 ## Pemeriksaan
 

@@ -52,6 +52,8 @@ export default function Login() {
     try {
       const result = await api.auth.login(form.email, form.password);
       login(result);
+      // staf baru dengan password sementara wajib menggantinya dulu
+      if (result.must_change_password) return navigate("/change-password", { replace: true });
       // landing dari API: /dashboard untuk member, /admin-dashboard untuk staf
       navigate(redirect || result.landing, { replace: true });
     } catch (err) {

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { Download } from "lucide-react";
+import { useParams, useSearchParams, Link } from "react-router-dom";
+import { CalendarClock, Download } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Button from "../components/Button";
 import Alert from "../components/Alert";
@@ -40,11 +40,16 @@ const PESAN = {
 };
 
 function BookingDetail({ booking, onChanged }) {
+  const [params] = useSearchParams();
   const [tipe, pesan] = PESAN[booking.status] || ["info", ""];
   const menit = (new Date(booking.end_at) - new Date(booking.start_at)) / 60000;
+  const ubahJadwal = `/booking/${booking.area.id}?reschedule=${booking.id}&date=${booking.local_date}`;
 
   return (
     <>
+      {params.get("moved") && booking.status !== "cancelled" && (
+        <Alert type="success" message="Jadwal booking berhasil dipindah." />
+      )}
       <Alert type={tipe} message={pesan} />
 
       <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_320px] items-start">
@@ -90,6 +95,14 @@ function BookingDetail({ booking, onChanged }) {
             <PaymentPanel booking={booking} onChanged={onChanged} />
           )}
           {booking.status === "confirmed" && <AccessQr />}
+          {booking.can_reschedule && (
+            <Link to={ubahJadwal} className="block">
+              <Button variant="secondary" className="w-full">
+                <CalendarClock size={16} className="inline mr-2 -mt-0.5" />
+                Ubah Jadwal
+              </Button>
+            </Link>
+          )}
           {booking.can_cancel && <CancelBooking booking={booking} onDone={onChanged} />}
           <div className="flex gap-3">
             <Link to={`/booking/${booking.rebook.area_id}`} className="flex-1">

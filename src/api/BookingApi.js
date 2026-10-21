@@ -16,6 +16,11 @@ export default class BookingApi {
     return this.client.get(`/bookings/${id}`);
   }
 
+  // jadwal baru harus di ruang yang sama dengan durasi sama
+  reschedule(id, { date, start_time, end_time }) {
+    return this.client.post(`/bookings/${id}/reschedule`, { date, start_time, end_time });
+  }
+
   cancel(id, reason) {
     return this.client.post(`/bookings/${id}/cancel`, { reason: reason || null });
   }

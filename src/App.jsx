@@ -6,6 +6,7 @@ import Register from "./pages/Register";
 import VerifyEmail from "./pages/VerifyEmail";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import ChangePassword from "./pages/ChangePassword";
 import Dashboard from "./pages/Dashboard";
 import BuildingList from "./pages/BuildingList";
 import BuildingDetail from "./pages/BuildingDetail";
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="/my-bookings" element={member(<MyBookings />)} />
         <Route path="/dashboard" element={member(<Dashboard />)} />
         <Route path="/admin-dashboard" element={staff(<AdminDashboard />)} />
+        <Route path="/change-password" element={<RequireAuth><ChangePassword /></RequireAuth>} />
 
         <Route path="/sandbox-pay/:ref" element={<SandboxPay />} />
         <Route path="*" element={<NotFound />} />

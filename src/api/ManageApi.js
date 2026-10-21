@@ -16,6 +16,15 @@ export default class ManageApi {
     });
   }
 
+  bookingsToday(buildingId) {
+    return this.client.get("/manage/bookings/today", { building_id: buildingId });
+  }
+
+  // resepsionis memindai atau mengetik token QR member/tamu (BE-30, BE-31)
+  validateAccess(token, buildingId) {
+    return this.client.post("/access/validate", { token, building_id: buildingId });
+  }
+
   refunds() {
     return this.client.get("/manage/refunds");
   }

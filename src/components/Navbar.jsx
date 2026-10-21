@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
-import { LayoutDashboard, Building2, CalendarCheck, Menu, X, LogOut } from "lucide-react";
+import { LayoutDashboard, Building2, CalendarCheck, Menu, X, LogOut, KeyRound } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import Button from "./Button";
 
@@ -68,6 +68,14 @@ export default function Navbar() {
               <span className="text-sm text-brown-700">
                 Halo, <strong className="text-brown-900">{user?.name}</strong>
               </span>
+              <Link
+                to="/change-password"
+                title="Ganti password"
+                aria-label="Ganti password"
+                className="text-brown-700 hover:text-brown-500 transition-colors"
+              >
+                <KeyRound size={16} />
+              </Link>
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-1.5 text-sm text-brown-700 hover:text-red-600 transition-colors"
@@ -122,6 +130,14 @@ export default function Navbar() {
                 <span className="text-sm text-brown-700">
                   Halo, <strong>{user?.name}</strong>
                 </span>
+                <Link
+                  to="/change-password"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-1.5 text-sm text-brown-700"
+                >
+                  <KeyRound size={16} />
+                  Password
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-1.5 text-sm text-red-600"
