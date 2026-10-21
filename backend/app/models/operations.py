@@ -12,7 +12,6 @@ from app.models.enums import (
     ReportKind,
 )
 
-
 class AccessLog(Entity):
     building_id: int
     device_id: int | None = None
@@ -26,7 +25,6 @@ class AccessLog(Entity):
     scanned_by: int | None = None
     scanned_at: datetime
 
-
 class Device(TimestampedEntity):
     building_id: int
     name: str
@@ -38,7 +36,6 @@ class Device(TimestampedEntity):
     last_heartbeat_at: datetime | None = None
     offline_notified: bool = False
 
-
 class DeviceCommand(Entity):
     device_id: int
     command: CommandType
@@ -49,7 +46,6 @@ class DeviceCommand(Entity):
     delivered_at: datetime | None = None
     completed_at: datetime | None = None
 
-
 class DeviceMaintenance(Entity):
     device_id: int
     date: date
@@ -59,14 +55,12 @@ class DeviceMaintenance(Entity):
     created_by: int
     created_at: datetime | None = None
 
-
 class Announcement(Entity):
     building_id: int
     title: str
     body: str
     created_by: int
     created_at: datetime | None = None
-
 
 class Notification(Entity):
     """Kotak keluar email simulasi. Pengiriman nyata cukup mengganti Mailer."""
@@ -78,7 +72,6 @@ class Notification(Entity):
     kind: str
     created_at: datetime | None = None
 
-
 class AuditLog(Entity):
     actor_id: int | None = None
     action: str
@@ -86,7 +79,6 @@ class AuditLog(Entity):
     entity_id: int | None = None
     detail: dict = {}
     created_at: datetime | None = None
-
 
 class ReportExport(Entity):
     requested_by: int

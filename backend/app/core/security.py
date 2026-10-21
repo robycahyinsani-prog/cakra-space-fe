@@ -11,7 +11,6 @@ import jwt
 from app.core.clock import clock
 from app.core.errors import Invalid, Unauthorized
 
-
 class PasswordHasher:
     MAX_BYTES = 72  # batas bcrypt, lebih dari ini ditolak bcrypt 5
 
@@ -32,7 +31,6 @@ class PasswordHasher:
     def temporary() -> str:
         alfabet = string.ascii_letters + string.digits
         return "Tmp-" + "".join(secrets.choice(alfabet) for _ in range(10))
-
 
 class TokenService:
     ALGORITHM = "HS256"
@@ -69,7 +67,6 @@ class TokenService:
             raise Unauthorized("Sesi sudah berakhir, silakan login lagi")
         return data
 
-
 class OneTimeToken:
     """Token acak untuk link email, yang disimpan hanya hash-nya."""
 
@@ -81,7 +78,6 @@ class OneTimeToken:
     @staticmethod
     def digest(token: str) -> str:
         return hashlib.sha256(token.encode()).hexdigest()
-
 
 class Signer:
     """Tanda tangan HMAC-SHA256 untuk QR dinamis dan webhook pembayaran."""

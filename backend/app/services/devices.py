@@ -17,7 +17,6 @@ from app.models.operations import Device, DeviceCommand, DeviceMaintenance
 from app.services.access_control import AccessControl
 from app.services.audit import AuditLogger
 
-
 class DeviceService:
     """Perangkat pintu: registrasi dan API key (BE-48), heartbeat (BE-49), perintah (BE-50), maintenance (BE-51)."""
 
@@ -50,16 +49,8 @@ class DeviceService:
             tx.buildings.require(building_id)
             prefix = secrets.token_hex(4)
             key = f"dev_{prefix}_{secrets.token_urlsafe(24)}"
-            device = tx.devices.add(
-                Device(
-                    building_id=building_id,
-                    name=name,
-                    type=device_type,
-                    door=door,
-                    key_prefix=prefix,
-                    key_hash=self._digest(key),
-                )
-            )
+            device = tx.devices.add(Device(building_id=building_id, name=name, type=device_type, door=door,
+                                           key_prefix=prefix, key_hash=self._digest(key)))
             self.audit.record(tx, actor.id, "device.register", "device", device.id)
             # API key hanya ditampilkan sekali, server menyimpan hash-nya saja
             return {**self.view(tx, device), "api_key": key}
@@ -99,10 +90,8 @@ class DeviceService:
     def heartbeat(self, device: Device) -> dict:
         with self.store.write() as tx:
             device = tx.devices.update(device.id, last_heartbeat_at=clock.now(), offline_notified=False)
-            return {
-                "status": "online",
-                "pending_commands": tx.device_commands.count(device_id=device.id, status=CommandStatus.PENDING),
-            }
+            return {"status": "online", "pending_commands": tx.device_commands.count(
+                device_id=device.id, status=CommandStatus.PENDING)}
 
     def detect_offline(self, tx: Tables) -> int:
         jumlah = 0
@@ -113,15 +102,10 @@ class DeviceService:
             for ub in tx.user_buildings.where(building_id=device.building_id):
                 staf = tx.users.get(ub.user_id)
                 if staf and staf.role == Role.LOCATION_MANAGER:
-                    self.mailer.send(
-                        tx,
-                        staf.email,
-                        f"Perangkat {device.name} offline",
-                        f"{device.name} ({device.door}) di {building.name} tidak mengirim heartbeat "
-                        f"lebih dari {self.settings.device_offline_minutes} menit.",
-                        "device_offline",
-                        staf.id,
-                    )
+                    self.mailer.send(tx, staf.email, f"Perangkat {device.name} offline",
+                                     f"{device.name} ({device.door}) di {building.name} tidak mengirim heartbeat "
+                                     f"lebih dari {self.settings.device_offline_minutes} menit.",
+                                     "device_offline", staf.id)
             tx.devices.update(device.id, offline_notified=True)
             jumlah += 1
         return jumlah
@@ -135,16 +119,8 @@ class DeviceService:
                 raise Conflict("Perangkat sudah dicabut")
             cmd = tx.device_commands.add(DeviceCommand(device_id=device.id, command=command, requested_by=actor.id))
             # setiap perintah tercatat di audit log beserta nama pengirimnya (AC K5-US-010.3)
-            self.audit.record(
-                tx,
-                actor.id,
-                "device.command",
-                "device",
-                device.id,
-                command=command,
-                command_id=cmd.id,
-                sender=actor.name,
-            )
+            self.audit.record(tx, actor.id, "device.command", "device", device.id, command=command,
+                              command_id=cmd.id, sender=actor.name)
             return cmd
 
     def commands(self, actor: User, device_id: int) -> list[dict]:
@@ -159,45 +135,32 @@ class DeviceService:
     def poll(self, device: Device) -> list[DeviceCommand]:
         with self.store.write() as tx:
             antre = tx.device_commands.where(device_id=device.id, status=CommandStatus.PENDING)
-            return [
-                tx.device_commands.update(c.id, status=CommandStatus.DELIVERED, delivered_at=clock.now())
-                for c in sorted(antre, key=lambda c: c.id)
-            ]
+            return [tx.device_commands.update(c.id, status=CommandStatus.DELIVERED, delivered_at=clock.now())
+                    for c in sorted(antre, key=lambda c: c.id)]
 
     def complete(self, device: Device, command_id: int, success: bool, result: str | None) -> DeviceCommand:
         with self.store.write() as tx:
             cmd = tx.device_commands.get(command_id)
             if cmd is None or cmd.device_id != device.id:
                 raise NotFound("Perintah tidak ditemukan")
-            return tx.device_commands.update(
-                cmd.id,
-                status=CommandStatus.DONE if success else CommandStatus.FAILED,
-                completed_at=clock.now(),
-                result=result,
-            )
+            return tx.device_commands.update(cmd.id, status=CommandStatus.DONE if success else CommandStatus.FAILED,
+                                             completed_at=clock.now(), result=result)
 
     # riwayat maintenance
 
-    def add_maintenance(
-        self, actor: User, device_id: int, day: date, issue: str, action: str, technician: str
-    ) -> DeviceMaintenance:
+    def add_maintenance(self, actor: User, device_id: int, day: date, issue: str, action: str,
+                        technician: str) -> DeviceMaintenance:
         with self.store.write() as tx:
             device = self._managed(tx, actor, device_id, "devices.manage")
-            return tx.device_maintenances.add(
-                DeviceMaintenance(
-                    device_id=device.id,
-                    date=day,
-                    issue=issue,
-                    action=action,
-                    technician=technician,
-                    created_by=actor.id,
-                )
-            )
+            return tx.device_maintenances.add(DeviceMaintenance(device_id=device.id, date=day, issue=issue,
+                                                                action=action, technician=technician,
+                                                                created_by=actor.id))
 
     def maintenances(self, actor: User, device_id: int) -> list[DeviceMaintenance]:
         with self.store.read() as tx:
             self._managed(tx, actor, device_id, "devices.manage")
-            return sorted(tx.device_maintenances.where(device_id=device_id), key=lambda m: (m.date, m.id), reverse=True)
+            return sorted(tx.device_maintenances.where(device_id=device_id), key=lambda m: (m.date, m.id),
+                          reverse=True)
 
     def _managed(self, tx: Tables, actor: User, device_id: int, permission: str) -> Device:
         device = tx.devices.require(device_id)

@@ -3,7 +3,6 @@ from datetime import date, datetime
 from app.models.base import Entity, TimestampedEntity
 from app.models.enums import BenefitType, SubscriptionStatus
 
-
 class Plan(TimestampedEntity):
     name: str
     description: str = ""
@@ -15,12 +14,10 @@ class Plan(TimestampedEntity):
     def covers(self, building_id: int) -> bool:
         return not self.building_ids or building_id in self.building_ids
 
-
 class PlanBenefit(Entity):
     plan_id: int
     benefit_type: BenefitType
     quantity: int  # jumlah per periode, misalnya 10 jam ruang rapat
-
 
 class Subscription(TimestampedEntity):
     user_id: int
@@ -47,7 +44,6 @@ class Subscription(TimestampedEntity):
             and self.start_date <= day <= self.end_date
             and not self.is_frozen_on(day)
         )
-
 
 class BenefitUsage(Entity):
     subscription_id: int

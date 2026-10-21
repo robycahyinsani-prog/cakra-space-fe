@@ -33,18 +33,9 @@ PERMISSIONS = {
 }
 
 _LOKASI = [
-    "buildings.edit",
-    "areas.manage",
-    "bookings.calendar",
-    "bookings.today",
-    "access.scan",
-    "access.logs",
-    "refunds.manage",
-    "finance.manage",
-    "announcements.manage",
-    "reports.view",
-    "devices.manage",
-    "devices.command",
+    "buildings.edit", "areas.manage", "bookings.calendar", "bookings.today", "access.scan",
+    "access.logs", "refunds.manage", "finance.manage", "announcements.manage", "reports.view",
+    "devices.manage", "devices.command",
 ]
 
 DEFAULT_MATRIX = {
@@ -56,7 +47,6 @@ DEFAULT_MATRIX = {
 }
 
 DEFAULT_SETTINGS = {"tax_rate_percent": "11"}
-
 
 class AccessControl:
     """Middleware otorisasi berbasis tabel roles, permissions dan user_buildings (BE-33)."""

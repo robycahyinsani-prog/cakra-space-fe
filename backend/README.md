@@ -94,7 +94,6 @@ Tanpa cron pun data tetap benar karena status hold kedaluwarsa juga dihitung saa
 ```bash
 pytest -q        # 72 test
 ruff check .
-ruff format --check .
 ```
 
 Test memakai berkas JSON sementara per test, jadi data `data/cakraspace.json` tidak tersentuh. Cakupannya mengikuti

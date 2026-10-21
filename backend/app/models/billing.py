@@ -12,7 +12,6 @@ from app.models.enums import (
     RefundStatus,
 )
 
-
 class Payment(TimestampedEntity):
     purpose: PaymentPurpose
     reference_id: int
@@ -28,7 +27,6 @@ class Payment(TimestampedEntity):
     # data tambahan, misalnya paket tujuan saat upgrade
     meta: dict = {}
 
-
 class PaymentEvent(Entity):
     """Log transaksi dari webhook, termasuk yang ditolak."""
 
@@ -39,7 +37,6 @@ class PaymentEvent(Entity):
     signature_valid: bool
     result: str
     created_at: datetime | None = None
-
 
 class Invoice(TimestampedEntity):
     number: str
@@ -57,11 +54,9 @@ class Invoice(TimestampedEntity):
     paid_at: datetime | None = None
     emailed_at: datetime | None = None
 
-
 class InvoiceCounter(Entity):
     key: str
     last_seq: int = 0
-
 
 class Refund(TimestampedEntity):
     booking_id: int
@@ -77,7 +72,6 @@ class Refund(TimestampedEntity):
     gateway_refund_ref: str | None = None
     note: str | None = None
 
-
 class Deposit(TimestampedEntity):
     user_id: int
     building_id: int
@@ -86,7 +80,6 @@ class Deposit(TimestampedEntity):
     status: DepositStatus = DepositStatus.HELD
     recorded_by: int
     returned_at: datetime | None = None
-
 
 class Arrear(TimestampedEntity):
     user_id: int
@@ -100,7 +93,6 @@ class Arrear(TimestampedEntity):
     def is_overdue(self, today: date) -> bool:
         return self.status == ArrearStatus.OPEN and self.due_date < today
 
-
 class Voucher(TimestampedEntity):
     code: str
     description: str = ""
@@ -113,7 +105,6 @@ class Voucher(TimestampedEntity):
     valid_until: date
     building_ids: list[int] = []  # kosong berarti berlaku di semua gedung
     is_active: bool = True
-
 
 class Setting(Entity):
     key: str

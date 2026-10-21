@@ -76,7 +76,6 @@ REGISTRY = {
     "device_maintenances": (DeviceMaintenance, "Riwayat maintenance", Repository),
 }
 
-
 class Tables:
     """Satu transaksi atas berkas JSON, berisi satu repository per koleksi."""
 

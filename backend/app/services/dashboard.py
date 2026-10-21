@@ -12,7 +12,6 @@ from app.services.finance import FinanceService
 from app.services.locations import BookingRules
 from app.services.membership import MembershipService
 
-
 class AnnouncementService:
     """Pengumuman gedung dari pengelola lokasi (BE-43)."""
 
@@ -24,9 +23,8 @@ class AnnouncementService:
         with self.store.write() as tx:
             self.acl.require_building(tx, actor, "announcements.manage", building_id)
             tx.buildings.require(building_id)
-            return tx.announcements.add(
-                Announcement(building_id=building_id, title=title, body=body, created_by=actor.id)
-            )
+            return tx.announcements.add(Announcement(building_id=building_id, title=title, body=body,
+                                                     created_by=actor.id))
 
     def delete(self, actor: User, announcement_id: int) -> None:
         with self.store.write() as tx:
@@ -43,10 +41,8 @@ class AnnouncementService:
 
     def feed(self, tx: Tables, user: User, membership: MembershipService) -> list[dict]:
         """Pengumuman tampil sesuai gedung tempat member punya booking atau membership (AC K5-US-008.4)."""
-        gedung = {
-            b.building_id
-            for b in tx.bookings.where(lambda b: b.end_at >= clock.now() - timedelta(days=90), user_id=user.id)
-        }
+        gedung = {b.building_id for b in tx.bookings.where(
+            lambda b: b.end_at >= clock.now() - timedelta(days=90), user_id=user.id)}
         sub = membership.current(tx, user.id)
         if sub and sub.is_usable_on(membership.today()):
             plan = tx.plans.require(sub.plan_id)
@@ -58,13 +54,11 @@ class AnnouncementService:
             hasil.append({**a.model_dump(), "building_name": building.name if building else None})
         return hasil
 
-
 class MemberDashboard:
     """Ringkasan halaman awal member (BE-40)."""
 
-    def __init__(
-        self, store: JsonStore, settings: Settings, membership: MembershipService, announcements: AnnouncementService
-    ):
+    def __init__(self, store: JsonStore, settings: Settings, membership: MembershipService,
+                 announcements: AnnouncementService):
         self.store = store
         self.settings = settings
         self.membership = membership
@@ -74,10 +68,8 @@ class MemberDashboard:
         now = clock.now()
         with self.store.read() as tx:
             langganan = self.membership.view(tx, user.id)
-            mendatang = sorted(
-                (b for b in tx.bookings.where(user_id=user.id) if BookingRules.holds_slot(b, now) and b.end_at > now),
-                key=lambda b: b.start_at,
-            )
+            mendatang = sorted((b for b in tx.bookings.where(user_id=user.id)
+                                if BookingRules.holds_slot(b, now) and b.end_at > now), key=lambda b: b.start_at)
             berikut = mendatang[0] if mendatang else None
             area = tx.areas.get(berikut.area_id) if berikut else None
             belum_bayar = tx.invoices.count(status=InvoiceStatus.UNPAID, user_id=user.id)
@@ -87,20 +79,12 @@ class MemberDashboard:
                 "membership": langganan,
                 "upcoming_bookings": len(mendatang),
                 "pending_payment_bookings": sum(1 for b in mendatang if b.status == BookingStatus.PENDING_PAYMENT),
-                "next_booking": {
-                    "id": berikut.id,
-                    "code": berikut.code,
-                    "start_at": berikut.start_at,
-                    "end_at": berikut.end_at,
-                    "area_name": area.name if area else None,
-                    "status": berikut.status,
-                }
-                if berikut
-                else None,
+                "next_booking": {"id": berikut.id, "code": berikut.code, "start_at": berikut.start_at,
+                                 "end_at": berikut.end_at, "area_name": area.name if area else None,
+                                 "status": berikut.status} if berikut else None,
                 "unpaid_invoices": belum_bayar,
                 "has_overdue_arrears": FinanceService.has_overdue(
-                    tx, user.id, clock.local_today(self.settings.timezone)
-                ),
+                    tx, user.id, clock.local_today(self.settings.timezone)),
                 "announcements": self.announcements.feed(tx, user, self.membership)[:5],
             }
 

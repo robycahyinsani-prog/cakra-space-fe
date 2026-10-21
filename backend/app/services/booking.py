@@ -27,7 +27,6 @@ from app.services.locations import AreaService, BookingRules, BuildingService, S
 from app.services.membership import MembershipService
 from app.services.pricing import PricingService, Quote
 
-
 @dataclass
 class BookingRequest:
     area_id: int
@@ -36,7 +35,6 @@ class BookingRequest:
     end_time: time
     voucher_code: str | None = None
     use_benefit: bool = False
-
 
 class BookingWindow:
     """Rentang waktu booking dalam zona waktu gedung, beserta validasinya."""
@@ -71,7 +69,6 @@ class BookingWindow:
         if self.start_at < buka[0] or self.end_at > buka[1]:
             raise Invalid("Booking harus di dalam jam operasional gedung")
 
-
 class AvailabilityService:
     """Pencarian area kosong (BE-15) dan grid slot per jam untuk halaman booking."""
 
@@ -80,16 +77,8 @@ class AvailabilityService:
         self.buildings = buildings
         self.settings = settings
 
-    def search(
-        self,
-        user: User | None,
-        building_id: int,
-        day: date,
-        start: time | None,
-        end: time | None,
-        area_type: AreaType | None,
-        min_capacity: int | None,
-    ) -> dict:
+    def search(self, user: User | None, building_id: int, day: date, start: time | None, end: time | None,
+               area_type: AreaType | None, min_capacity: int | None) -> dict:
         now = clock.now()
         with self.store.read() as tx:
             building = self.buildings.visible(tx, user, building_id)
@@ -98,39 +87,22 @@ class AvailabilityService:
             if start and end:
                 window = BookingWindow(building, day, start, end)
                 window.validate(tx, self.settings)
-            areas = [
-                a
-                for a in tx.areas.where(building_id=building_id, status=AreaStatus.AVAILABLE)
-                if (area_type is None or a.type == area_type) and (min_capacity is None or a.capacity >= min_capacity)
-            ]
+            areas = [a for a in tx.areas.where(building_id=building_id, status=AreaStatus.AVAILABLE)
+                     if (area_type is None or a.type == area_type)
+                     and (min_capacity is None or a.capacity >= min_capacity)]
             hasil = []
             for area in sorted(areas, key=lambda a: a.code):
                 sibuk = self._busy(tx, area.id, day, building, now)
-                bebas = (
-                    None
-                    if window is None
-                    else not any(s["start_at"] < window.end_at and window.start_at < s["end_at"] for s in sibuk)
-                )
+                bebas = None if window is None else not any(
+                    s["start_at"] < window.end_at and window.start_at < s["end_at"] for s in sibuk)
                 if window is not None and not bebas:
                     continue
                 hasil.append({**AreaService.view(tx, area), "is_free": bebas, "busy": sibuk})
-            return {
-                "building_id": building_id,
-                "date": day,
-                "is_open": buka is not None,
-                "open_at": buka[0] if buka else None,
-                "close_at": buka[1] if buka else None,
-                "areas": hasil,
-            }
+            return {"building_id": building_id, "date": day, "is_open": buka is not None,
+                    "open_at": buka[0] if buka else None, "close_at": buka[1] if buka else None, "areas": hasil}
 
-    def slots(
-        self,
-        user: User | None,
-        building_id: int,
-        day: date,
-        area_type: AreaType | None = None,
-        area_id: int | None = None,
-    ) -> dict:
+    def slots(self, user: User | None, building_id: int, day: date, area_type: AreaType | None = None,
+              area_id: int | None = None) -> dict:
         """Grid slot per jam per area, status available, booked, past atau closed."""
         now = clock.now()
         with self.store.read() as tx:
@@ -158,16 +130,10 @@ class AvailabilityService:
                         else:
                             status = "available"
                         lokal = mulai.astimezone(ZoneInfo(building.timezone))
-                        grid.append(
-                            {
-                                "start_time": lokal.strftime("%H:%M"),
-                                "end_time": selesai.astimezone(ZoneInfo(building.timezone)).strftime("%H:%M"),
-                                "start_at": mulai,
-                                "end_at": selesai,
-                                "status": status,
-                                "price": PricingService.base_price(area, 60),
-                            }
-                        )
+                        grid.append({"start_time": lokal.strftime("%H:%M"),
+                                     "end_time": selesai.astimezone(ZoneInfo(building.timezone)).strftime("%H:%M"),
+                                     "start_at": mulai, "end_at": selesai, "status": status,
+                                     "price": PricingService.base_price(area, 60)})
                         mulai = selesai
                 hasil.append({"area": AreaService.view(tx, area), "slots": grid})
             return {"building_id": building_id, "date": day, "is_open": buka is not None, "areas": hasil}
@@ -176,27 +142,14 @@ class AvailabilityService:
     def _busy(tx: Tables, area_id: int, day: date, building: Building, now: datetime) -> list[dict]:
         awal = clock.combine(day, time(0), building.timezone)
         akhir = awal + timedelta(days=1)
-        return [
-            {"start_at": b.start_at, "end_at": b.end_at}
-            for b in tx.bookings.where(
-                lambda b: BookingRules.holds_slot(b, now) and b.overlaps(awal, akhir), area_id=area_id
-            )
-        ]
-
+        return [{"start_at": b.start_at, "end_at": b.end_at}
+                for b in tx.bookings.where(lambda b: BookingRules.holds_slot(b, now) and b.overlaps(awal, akhir),
+                                           area_id=area_id)]
 
 class BookingService:
-    def __init__(
-        self,
-        store: JsonStore,
-        settings: Settings,
-        acl: AccessControl,
-        audit: AuditLogger,
-        mailer: Mailer,
-        buildings: BuildingService,
-        pricing: PricingService,
-        membership: MembershipService,
-        refunds,
-    ):
+    def __init__(self, store: JsonStore, settings: Settings, acl: AccessControl, audit: AuditLogger,
+                 mailer: Mailer, buildings: BuildingService, pricing: PricingService,
+                 membership: MembershipService, refunds):
         self.store = store
         self.settings = settings
         self.acl = acl
@@ -212,9 +165,8 @@ class BookingService:
     def quote(self, user: User, req: BookingRequest) -> Quote:
         with self.store.read() as tx:
             area, building, window = self._prepare(tx, user, req)
-            return self.pricing.quote(
-                tx, user, area, building, window.start_at, window.end_at, window.day, req.voucher_code, req.use_benefit
-            )
+            return self.pricing.quote(tx, user, area, building, window.start_at, window.end_at, window.day,
+                                      req.voucher_code, req.use_benefit)
 
     def create(self, user: User, req: BookingRequest) -> dict:
         # seluruh langkah berada di dalam satu transaksi tulis yang terkunci, jadi cek bentrok dan
@@ -226,38 +178,23 @@ class BookingService:
                 raise Forbidden("Anda masih punya tunggakan yang lewat jatuh tempo", code="has_arrears")
             area, building, window = self._prepare(tx, user, req)
             now = clock.now()
-            if tx.bookings.exists(
-                lambda b: BookingRules.blocks(b, now, window.start_at, window.end_at), area_id=area.id
-            ):
-                raise Conflict(
-                    "Slot ini baru saja dipesan orang lain",
-                    code="slot_taken",
-                    suggestions=self._suggestions(tx, area, window, now),
-                )
-            quote = self.pricing.quote(
-                tx, user, area, building, window.start_at, window.end_at, window.day, req.voucher_code, req.use_benefit
-            )
+            if tx.bookings.exists(lambda b: BookingRules.blocks(b, now, window.start_at, window.end_at),
+                                  area_id=area.id):
+                raise Conflict("Slot ini baru saja dipesan orang lain", code="slot_taken",
+                               suggestions=self._suggestions(tx, area, window, now))
+            quote = self.pricing.quote(tx, user, area, building, window.start_at, window.end_at, window.day,
+                                       req.voucher_code, req.use_benefit)
             gratis = quote.total == 0
-            booking = tx.bookings.add(
-                Booking(
-                    code=self._code(tx, window.day),
-                    user_id=user.id,
-                    building_id=building.id,
-                    area_id=area.id,
-                    start_at=window.start_at,
-                    end_at=window.end_at,
-                    status=BookingStatus.CONFIRMED if gratis else BookingStatus.PENDING_PAYMENT,
-                    subtotal=quote.subtotal,
-                    benefit_discount=quote.benefit_discount,
-                    voucher_discount=quote.voucher_discount,
-                    tax=quote.tax,
-                    total=quote.total,
-                    voucher_id=quote.voucher_id,
-                    subscription_id=quote.subscription_id,
-                    benefit_minutes=quote.benefit_minutes,
-                    hold_expires_at=None if gratis else now + timedelta(minutes=self.settings.booking_hold_minutes),
-                )
-            )
+            booking = tx.bookings.add(Booking(
+                code=self._code(tx, window.day), user_id=user.id, building_id=building.id, area_id=area.id,
+                start_at=window.start_at, end_at=window.end_at,
+                status=BookingStatus.CONFIRMED if gratis else BookingStatus.PENDING_PAYMENT,
+                subtotal=quote.subtotal, benefit_discount=quote.benefit_discount,
+                voucher_discount=quote.voucher_discount, tax=quote.tax, total=quote.total,
+                voucher_id=quote.voucher_id, subscription_id=quote.subscription_id,
+                benefit_minutes=quote.benefit_minutes,
+                hold_expires_at=None if gratis else now + timedelta(minutes=self.settings.booking_hold_minutes),
+            ))
             if quote.voucher_id:
                 VoucherService.reserve(tx, quote.voucher_id)
             if quote.subscription_id and quote.benefit_minutes:
@@ -285,7 +222,7 @@ class BookingService:
                 items = [b for b in items if not (BookingRules.holds_slot(b, now) and b.end_at > now)]
                 items.sort(key=lambda b: b.start_at, reverse=True)
             total = len(items)
-            potong = items[(page - 1) * size : page * size]
+            potong = items[(page - 1) * size: page * size]
             return {"items": [self.view(tx, b) for b in potong], "page": page, "size": size, "total": total}
 
     def detail(self, user: User, booking_id: int) -> dict:
@@ -296,10 +233,8 @@ class BookingService:
                     raise NotFound("Booking tidak ditemukan")
                 self._require_staff_view(tx, user, booking.building_id)
             data = self.view(tx, booking)
-            data["guests"] = [
-                {"id": g.id, "guest_name": g.guest_name, "guest_email": g.guest_email, "used_at": g.used_at}
-                for g in tx.guest_invites.where(booking_id=booking.id)
-            ]
+            data["guests"] = [{"id": g.id, "guest_name": g.guest_name, "guest_email": g.guest_email,
+                               "used_at": g.used_at} for g in tx.guest_invites.where(booking_id=booking.id)]
             return data
 
     def view(self, tx: Tables, booking: Booking) -> dict:
@@ -313,54 +248,28 @@ class BookingService:
         payment = max(tx.payments.where(purpose="booking", reference_id=booking.id), key=lambda p: p.id, default=None)
         invoice = max(tx.invoices.where(purpose="booking", reference_id=booking.id), key=lambda i: i.id, default=None)
         refund = max(tx.refunds.where(booking_id=booking.id), key=lambda r: r.id, default=None)
-        masih_bisa_ubah = status in (
-            BookingStatus.PENDING_PAYMENT,
-            BookingStatus.CONFIRMED,
-        ) and now <= booking.start_at - timedelta(hours=building.cancel_deadline_hours)
+        masih_bisa_ubah = (status in (BookingStatus.PENDING_PAYMENT, BookingStatus.CONFIRMED)
+                           and now <= booking.start_at - timedelta(hours=building.cancel_deadline_hours))
         return {
-            **booking.model_dump(),
-            "status": status,
+            **booking.model_dump(), "status": status,
             "local_date": booking.start_at.astimezone(tz).date(),
             "local_start": booking.start_at.astimezone(tz).strftime("%H:%M"),
             "local_end": booking.end_at.astimezone(tz).strftime("%H:%M"),
-            "area": {
-                "id": area.id,
-                "code": area.code,
-                "name": area.name,
-                "type": area.type,
-                "capacity": area.capacity,
-                "floor_id": area.floor_id,
-            }
-            if area
-            else None,
-            "building": {
-                "id": building.id,
-                "code": building.code,
-                "name": building.name,
-                "city": building.city,
-                "timezone": building.timezone,
-            },
-            "payment": {
-                "id": payment.id,
-                "status": payment.status,
-                "method": payment.method,
-                "va_number": payment.va_number,
-                "payment_url": payment.payment_url,
-                "expires_at": payment.expires_at,
-            }
-            if payment
-            else None,
+            "area": {"id": area.id, "code": area.code, "name": area.name, "type": area.type,
+                     "capacity": area.capacity, "floor_id": area.floor_id} if area else None,
+            "building": {"id": building.id, "code": building.code, "name": building.name, "city": building.city,
+                         "timezone": building.timezone},
+            "payment": {"id": payment.id, "status": payment.status, "method": payment.method,
+                        "va_number": payment.va_number, "payment_url": payment.payment_url,
+                        "expires_at": payment.expires_at} if payment else None,
             "invoice": {"id": invoice.id, "number": invoice.number, "status": invoice.status} if invoice else None,
-            "refund": {"id": refund.id, "status": refund.status, "amount": refund.amount, "percent": refund.percent}
-            if refund
-            else None,
+            "refund": {"id": refund.id, "status": refund.status, "amount": refund.amount,
+                       "percent": refund.percent} if refund else None,
             "can_pay": status == BookingStatus.PENDING_PAYMENT,
             "can_cancel": masih_bisa_ubah,
             "can_reschedule": masih_bisa_ubah,
-            "can_invite_guests": status == BookingStatus.CONFIRMED
-            and area is not None
-            and area.type == AreaType.MEETING_ROOM
-            and booking.end_at > now,
+            "can_invite_guests": status == BookingStatus.CONFIRMED and area is not None
+            and area.type == AreaType.MEETING_ROOM and booking.end_at > now,
             "rebook": {"building_id": booking.building_id, "area_id": booking.area_id},
             "cancel_deadline": booking.start_at - timedelta(hours=building.cancel_deadline_hours),
         }
@@ -372,16 +281,10 @@ class BookingService:
             booking = self._owned(tx, user, booking_id)
             building = tx.buildings.require(booking.building_id)
             self._check_deadline(booking, building, "dibatalkan")
-            dibayar = tx.payments.first(
-                lambda p: p.status == PaymentStatus.SUCCESS, purpose="booking", reference_id=booking.id
-            )
-            booking = tx.bookings.update(
-                booking.id,
-                status=BookingStatus.CANCELLED,
-                cancelled_at=clock.now(),
-                cancel_reason=reason,
-                hold_expires_at=None,
-            )
+            dibayar = tx.payments.first(lambda p: p.status == PaymentStatus.SUCCESS, purpose="booking",
+                                        reference_id=booking.id)
+            booking = tx.bookings.update(booking.id, status=BookingStatus.CANCELLED, cancelled_at=clock.now(),
+                                         cancel_reason=reason, hold_expires_at=None)
             self._release(tx, booking)
             for p in tx.payments.where(purpose="booking", reference_id=booking.id, status=PaymentStatus.PENDING):
                 tx.payments.update(p.id, status=PaymentStatus.EXPIRED)
@@ -391,14 +294,10 @@ class BookingService:
                 # booking yang sudah dibayar membuat permintaan refund (AC K5-US-004.4)
                 self.refunds.request(tx, booking, dibayar, building)
             self.audit.record(tx, user.id, "booking.cancel", "booking", booking.id, reason=reason)
-            self.mailer.send(
-                tx,
-                user.email,
-                f"Booking {booking.code} dibatalkan",
-                "Booking Anda sudah dibatalkan." + (" Permintaan refund sedang diproses." if dibayar else ""),
-                "booking_cancelled",
-                user.id,
-            )
+            self.mailer.send(tx, user.email, f"Booking {booking.code} dibatalkan",
+                             "Booking Anda sudah dibatalkan."
+                             + (" Permintaan refund sedang diproses." if dibayar else ""),
+                             "booking_cancelled", user.id)
             return self.view(tx, booking)
 
     def reschedule(self, user: User, booking_id: int, day: date, start: time, end: time) -> dict:
@@ -413,53 +312,26 @@ class BookingService:
                 raise Invalid("Durasi jadwal baru harus sama dengan booking awal")
             now = clock.now()
             # ketersediaan slot baru diperiksa ulang (AC K5-US-004.4)
-            if tx.bookings.exists(
-                lambda b: (
-                    b.id != booking.id
-                    and BookingRules.holds_slot(b, now)
-                    and b.overlaps(window.start_at, window.end_at)
-                ),
-                area_id=booking.area_id,
-            ):
+            if tx.bookings.exists(lambda b: b.id != booking.id and BookingRules.holds_slot(b, now)
+                                  and b.overlaps(window.start_at, window.end_at), area_id=booking.area_id):
                 area = tx.areas.require(booking.area_id)
-                raise Conflict(
-                    "Jadwal baru sudah terisi", code="slot_taken", suggestions=self._suggestions(tx, area, window, now)
-                )
+                raise Conflict("Jadwal baru sudah terisi", code="slot_taken",
+                               suggestions=self._suggestions(tx, area, window, now))
             lama = booking.start_at
-            booking = tx.bookings.update(
-                booking.id,
-                start_at=window.start_at,
-                end_at=window.end_at,
-                reminder_24_sent=False,
-                reminder_1_sent=False,
-                needs_relocation=False,
-            )
+            booking = tx.bookings.update(booking.id, start_at=window.start_at, end_at=window.end_at,
+                                         reminder_24_sent=False, reminder_1_sent=False, needs_relocation=False)
             for u in tx.benefit_usages.where(lambda u: u.reversed_at is None, booking_id=booking.id):
                 sub = tx.subscriptions.get(u.subscription_id)
                 if sub and sub.start_date:
                     tx.benefit_usages.update(u.id, period_start=self.membership.period_start(sub, day))
-            self.audit.record(
-                tx,
-                user.id,
-                "booking.reschedule",
-                "booking",
-                booking.id,
-                old_start=lama.isoformat(),
-                new_start=window.start_at.isoformat(),
-            )
+            self.audit.record(tx, user.id, "booking.reschedule", "booking", booking.id,
+                              old_start=lama.isoformat(), new_start=window.start_at.isoformat())
             return self.view(tx, booking)
 
     # tampilan pengelola (BE-21) dan resepsionis
 
-    def calendar(
-        self,
-        actor: User,
-        building_id: int,
-        date_from: date,
-        date_to: date,
-        floor_id: int | None,
-        area_type: AreaType | None,
-    ) -> dict:
+    def calendar(self, actor: User, building_id: int, date_from: date, date_to: date,
+                 floor_id: int | None, area_type: AreaType | None) -> dict:
         if (date_to - date_from).days > 31:
             raise Invalid("Rentang kalender maksimal 31 hari")
         with self.store.read() as tx:
@@ -473,40 +345,21 @@ class BookingService:
             hari = clock.local_today(building.timezone)
             return self._listing(tx, building_id, hari, hari, None, None)
 
-    def _listing(
-        self,
-        tx: Tables,
-        building_id: int,
-        date_from: date,
-        date_to: date,
-        floor_id: int | None,
-        area_type: AreaType | None,
-    ) -> dict:
+    def _listing(self, tx: Tables, building_id: int, date_from: date, date_to: date,
+                 floor_id: int | None, area_type: AreaType | None) -> dict:
         building = tx.buildings.require(building_id)
         awal = clock.combine(date_from, time(0), building.timezone)
         akhir = clock.combine(date_to + timedelta(days=1), time(0), building.timezone)
-        area_ok = {
-            a.id: a
-            for a in tx.areas.where(building_id=building_id)
-            if (floor_id is None or a.floor_id == floor_id) and (area_type is None or a.type == area_type)
-        }
+        area_ok = {a.id: a for a in tx.areas.where(building_id=building_id)
+                   if (floor_id is None or a.floor_id == floor_id) and (area_type is None or a.type == area_type)}
         now = clock.now()
-        items = [
-            b
-            for b in tx.bookings.where(
-                lambda b: b.overlaps(awal, akhir) and BookingRules.holds_slot(b, now), building_id=building_id
-            )
-            if b.area_id in area_ok
-        ]
+        items = [b for b in tx.bookings.where(lambda b: b.overlaps(awal, akhir) and BookingRules.holds_slot(b, now),
+                                              building_id=building_id) if b.area_id in area_ok]
         hasil = []
         for b in sorted(items, key=lambda b: b.start_at):
             member = tx.users.get(b.user_id)
-            hasil.append(
-                {
-                    **self.view(tx, b),
-                    "member": {"id": member.id, "name": member.name, "email": member.email} if member else None,
-                }
-            )
+            hasil.append({**self.view(tx, b), "member": {"id": member.id, "name": member.name,
+                                                          "email": member.email} if member else None})
         return {"building_id": building_id, "date_from": date_from, "date_to": date_to, "items": hasil}
 
     # tugas terjadwal: hold kedaluwarsa (BE-17) dan pengingat (BE-20)
@@ -514,9 +367,8 @@ class BookingService:
     def expire_holds(self, tx: Tables) -> int:
         now = clock.now()
         jumlah = 0
-        for b in tx.bookings.where(
-            lambda b: b.hold_expires_at is not None and b.hold_expires_at <= now, status=BookingStatus.PENDING_PAYMENT
-        ):
+        for b in tx.bookings.where(lambda b: b.hold_expires_at is not None and b.hold_expires_at <= now,
+                                   status=BookingStatus.PENDING_PAYMENT):
             tx.bookings.update(b.id, status=BookingStatus.EXPIRED)
             self._release(tx, b)
             for p in tx.payments.where(purpose="booking", reference_id=b.id, status=PaymentStatus.PENDING):
@@ -542,14 +394,9 @@ class BookingService:
             area = tx.areas.get(b.area_id)
             building = tx.buildings.get(b.building_id)
             mulai = b.start_at.astimezone(ZoneInfo(building.timezone))
-            self.mailer.send(
-                tx,
-                user.email,
-                f"Pengingat booking {b.code}",
-                f"Jadwal Anda di {area.name}, {building.name} dimulai {mulai:%d-%m-%Y %H:%M} ({kirim} lagi).",
-                "booking_reminder",
-                user.id,
-            )
+            self.mailer.send(tx, user.email, f"Pengingat booking {b.code}",
+                             f"Jadwal Anda di {area.name}, {building.name} dimulai {mulai:%d-%m-%Y %H:%M} "
+                             f"({kirim} lagi).", "booking_reminder", user.id)
             tx.bookings.update(b.id, **ubah)
             jumlah += 1
         return jumlah
@@ -571,7 +418,8 @@ class BookingService:
         for a in tx.areas.where(building_id=area.building_id, type=area.type, status=AreaStatus.AVAILABLE):
             if a.id == area.id or a.capacity < area.capacity:
                 continue
-            if tx.bookings.exists(lambda b: BookingRules.blocks(b, now, window.start_at, window.end_at), area_id=a.id):
+            if tx.bookings.exists(lambda b: BookingRules.blocks(b, now, window.start_at, window.end_at),
+                                  area_id=a.id):
                 continue
             hasil.append({"area_id": a.id, "code": a.code, "name": a.name, "capacity": a.capacity})
             if len(hasil) == 3:
@@ -600,9 +448,8 @@ class BookingService:
         if booking.status not in (BookingStatus.PENDING_PAYMENT, BookingStatus.CONFIRMED):
             raise Conflict("Booking ini sudah tidak aktif")
         if now > booking.start_at - timedelta(hours=building.cancel_deadline_hours):
-            raise Conflict(
-                f"Booking hanya bisa {aksi} paling lambat {building.cancel_deadline_hours} jam sebelum jadwal mulai"
-            )
+            raise Conflict(f"Booking hanya bisa {aksi} paling lambat {building.cancel_deadline_hours} jam "
+                           "sebelum jadwal mulai")
 
     def _release(self, tx: Tables, booking: Booking) -> None:
         VoucherService.release(tx, booking.voucher_id)
@@ -617,11 +464,7 @@ class BookingService:
         area = tx.areas.get(booking.area_id)
         building = tx.buildings.get(booking.building_id)
         mulai = booking.start_at.astimezone(ZoneInfo(building.timezone))
-        self.mailer.send(
-            tx,
-            user.email,
-            f"Booking {booking.code} terkonfirmasi",
-            f"{area.name} di {building.name}, {mulai:%d-%m-%Y %H:%M}. Tunjukkan QR di aplikasi saat datang.",
-            "booking_confirmed",
-            user.id,
-        )
+        self.mailer.send(tx, user.email, f"Booking {booking.code} terkonfirmasi",
+                         f"{area.name} di {building.name}, {mulai:%d-%m-%Y %H:%M}. "
+                         "Tunjukkan QR di aplikasi saat datang.",
+                         "booking_confirmed", user.id)

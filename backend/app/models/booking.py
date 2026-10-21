@@ -3,7 +3,6 @@ from datetime import datetime
 from app.models.base import Entity, TimestampedEntity
 from app.models.enums import BookingStatus
 
-
 class Booking(TimestampedEntity):
     code: str
     user_id: int
@@ -33,7 +32,6 @@ class Booking(TimestampedEntity):
 
     def overlaps(self, start: datetime, end: datetime) -> bool:
         return self.start_at < end and start < self.end_at
-
 
 class GuestInvite(Entity):
     booking_id: int

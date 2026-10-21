@@ -12,14 +12,9 @@ from app.schemas.commerce import ValidateIn
 
 router = APIRouter(prefix="/api/v1", tags=["access"])
 
-
 @router.post("/access/validate", summary="Validasi QR member atau tamu dari perangkat pintu atau resepsionis (BE-30)")
-def validate(
-    body: ValidateIn,
-    x_device_key: str | None = Header(default=None),
-    c: Container = Depends(get_container),
-    authorization: str | None = Header(default=None),
-):
+def validate(body: ValidateIn, x_device_key: str | None = Header(default=None),
+             c: Container = Depends(get_container), authorization: str | None = Header(default=None)):
     if x_device_key:
         device = c.devices.authenticate(x_device_key)
         return c.access.validate(body.token, device.building_id, body.door, device, None)
@@ -33,40 +28,19 @@ def validate(
         c.acl.require_building(tx, scanner, "access.scan", body.building_id)
     return c.access.validate(body.token, body.building_id, body.door, None, scanner)
 
-
 @router.get("/manage/access-logs", summary="Log keluar masuk gedung, bisa disaring per tanggal dan member (BE-32)")
-def access_logs(
-    building_id: int | None = None,
-    date_from: date | None = None,
-    date_to: date | None = None,
-    user_id: int | None = None,
-    result: AccessResult | None = None,
-    actor: User = Depends(staff_user),
-    c: Container = Depends(get_container),
-):
+def access_logs(building_id: int | None = None, date_from: date | None = None, date_to: date | None = None,
+                user_id: int | None = None, result: AccessResult | None = None,
+                actor: User = Depends(staff_user), c: Container = Depends(get_container)):
     return c.access.logs(actor, building_id, date_from, date_to, user_id, result)
 
-
-@router.get(
-    "/manage/access-logs/export",
-    summary="Ekspor log akses ke Excel (BE-32)",
-    response_class=Response,
-    responses={200: {"content": {"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}}}},
-)
-def export_access_logs(
-    building_id: int | None = None,
-    date_from: date | None = None,
-    date_to: date | None = None,
-    user_id: int | None = None,
-    result: AccessResult | None = None,
-    actor: User = Depends(staff_user),
-    c: Container = Depends(get_container),
-):
-    konten, nama = c.access.export_logs(
-        actor, building_id=building_id, date_from=date_from, date_to=date_to, user_id=user_id, result=result
-    )
-    return Response(
-        konten,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="{nama}"'},
-    )
+@router.get("/manage/access-logs/export", summary="Ekspor log akses ke Excel (BE-32)",
+            response_class=Response,
+            responses={200: {"content": {"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}}}})
+def export_access_logs(building_id: int | None = None, date_from: date | None = None, date_to: date | None = None,
+                       user_id: int | None = None, result: AccessResult | None = None,
+                       actor: User = Depends(staff_user), c: Container = Depends(get_container)):
+    konten, nama = c.access.export_logs(actor, building_id=building_id, date_from=date_from, date_to=date_to,
+                                        user_id=user_id, result=result)
+    return Response(konten, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": f'attachment; filename="{nama}"'})

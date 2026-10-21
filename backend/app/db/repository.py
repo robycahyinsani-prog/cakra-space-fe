@@ -5,10 +5,8 @@ from pydantic import BaseModel
 from app.core.clock import clock
 from app.core.errors import NotFound
 
-
 class ReadOnlyError(RuntimeError):
     pass
-
 
 class Repository[M: BaseModel]:
     """CRUD satu koleksi JSON. Data disimpan sebagai dict, dikembalikan sebagai model Pydantic."""
@@ -124,7 +122,6 @@ class Repository[M: BaseModel]:
     def _guard(self) -> None:
         if not self._tables.writable:
             raise ReadOnlyError(f"koleksi {self.name} dibuka hanya baca")
-
 
 class AppendOnlyRepository[M: BaseModel](Repository[M]):
     """Koleksi log yang hanya bisa ditambah, sesuai AC log akses tidak bisa diubah atau dihapus."""

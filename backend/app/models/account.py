@@ -3,7 +3,6 @@ from datetime import datetime
 from app.models.base import Entity, TimestampedEntity
 from app.models.enums import Role, TokenPurpose
 
-
 class User(TimestampedEntity):
     email: str
     password_hash: str
@@ -22,28 +21,23 @@ class User(TimestampedEntity):
     def is_staff(self) -> bool:
         return self.role != Role.MEMBER
 
-
 class UserBuilding(Entity):
     """Gedung yang dipegang staf (pengelola lokasi dan resepsionis)."""
 
     user_id: int
     building_id: int
 
-
 class RoleDef(Entity):
     code: Role
     name: str
-
 
 class Permission(Entity):
     code: str
     description: str
 
-
 class RolePermission(Entity):
     role: Role
     permission: str
-
 
 class EmailToken(Entity):
     user_id: int
@@ -53,7 +47,6 @@ class EmailToken(Entity):
     expires_at: datetime
     used_at: datetime | None = None
     created_at: datetime | None = None
-
 
 class RevokedToken(Entity):
     jti: str

@@ -5,21 +5,14 @@ from app.services.booking import BookingService
 from app.services.devices import DeviceService
 from app.services.membership import MembershipService
 
-
 class JobRunner:
     """Tugas terjadwal: hold booking (BE-17), pengingat (BE-20), membership (BE-39), perangkat offline (BE-49).
 
     Dijalankan lewat `python -m app.jobs` atau endpoint internal yang dipanggil cron.
     """
 
-    def __init__(
-        self,
-        store: JsonStore,
-        bookings: BookingService,
-        payments: PaymentService,
-        membership: MembershipService,
-        devices: DeviceService,
-    ):
+    def __init__(self, store: JsonStore, bookings: BookingService, payments: PaymentService,
+                 membership: MembershipService, devices: DeviceService):
         self.store = store
         self.bookings = bookings
         self.payments = payments

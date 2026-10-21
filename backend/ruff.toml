@@ -6,6 +6,9 @@ extend-exclude = [".venv", "data"]
 select = ["E", "F", "I", "B", "UP", "C4"]
 ignore = ["B008"]  # Depends() memang dipanggil di default argument
 
+[lint.isort]
+lines-after-imports = 1
+
 [lint.per-file-ignores]
 # assert di test dibiarkan satu baris supaya mudah dibaca
 "tests/*" = ["E501"]

@@ -4,10 +4,8 @@ from fpdf import FPDF
 from openpyxl import Workbook
 from openpyxl.styles import Font
 
-
 def rupiah(nilai: int) -> str:
     return "Rp" + f"{nilai:,}".replace(",", ".")
-
 
 class InvoicePdf:
     """PDF invoice sederhana dengan font bawaan fpdf2 (tanpa karakter non-Latin)."""
@@ -48,7 +46,6 @@ class InvoicePdf:
         pdf.cell(130, 9, "Total", border=1)
         pdf.cell(0, 9, rupiah(data["total"]), border=1, align="R", new_x="LMARGIN", new_y="NEXT")
         return bytes(pdf.output())
-
 
 class TableExporter:
     """Ekspor laporan tabular ke xlsx atau PDF."""

@@ -8,7 +8,6 @@ from app.models.location import Area, Building
 from app.services.finance import SettingService, VoucherService
 from app.services.membership import MembershipService
 
-
 @dataclass
 class Quote:
     area_id: int
@@ -29,7 +28,6 @@ class Quote:
     def as_dict(self) -> dict:
         return asdict(self)
 
-
 class PricingService:
     """Ringkasan harga booking: harga dasar, benefit membership, voucher, lalu pajak.
 
@@ -45,18 +43,8 @@ class PricingService:
         # tarif harian menjadi batas atas supaya pemakaian seharian tidak lebih mahal dari paket harian
         return min(per_jam, area.price_per_day)
 
-    def quote(
-        self,
-        tx: Tables,
-        user: User,
-        area: Area,
-        building: Building,
-        start: datetime,
-        end: datetime,
-        hari: date,
-        voucher_code: str | None,
-        use_benefit: bool,
-    ) -> Quote:
+    def quote(self, tx: Tables, user: User, area: Area, building: Building, start: datetime, end: datetime,
+              hari: date, voucher_code: str | None, use_benefit: bool) -> Quote:
         menit = int((end - start).total_seconds() // 60)
         subtotal = self.base_price(area, menit)
 
@@ -79,18 +67,8 @@ class PricingService:
         dasar_pajak = subtotal - benefit_potong - voucher_potong
         pajak = dasar_pajak * tarif // 100
         return Quote(
-            area_id=area.id,
-            start_at=start,
-            end_at=end,
-            minutes=menit,
-            subtotal=subtotal,
-            benefit_minutes=benefit_menit,
-            benefit_discount=benefit_potong,
-            voucher_id=voucher_id,
-            voucher_code=kode,
-            voucher_discount=voucher_potong,
-            tax_rate_percent=tarif,
-            tax=pajak,
-            total=dasar_pajak + pajak,
-            subscription_id=sub_id,
+            area_id=area.id, start_at=start, end_at=end, minutes=menit, subtotal=subtotal,
+            benefit_minutes=benefit_menit, benefit_discount=benefit_potong, voucher_id=voucher_id,
+            voucher_code=kode, voucher_discount=voucher_potong, tax_rate_percent=tarif, tax=pajak,
+            total=dasar_pajak + pajak, subscription_id=sub_id,
         )

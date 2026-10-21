@@ -12,7 +12,6 @@ from app.models.enums import ArrearStatus, DepositStatus, DiscountType, Role
 from app.services.access_control import AccessControl
 from app.services.audit import AuditLogger
 
-
 class SettingService:
     """Pengaturan global, saat ini tarif pajak (AC K5-US-005.6)."""
 
@@ -37,7 +36,6 @@ class SettingService:
             tx.settings.update(row.id, value=str(rate))
             self.audit.record(tx, actor.id, "settings.tax_rate", "setting", row.id, value=rate)
             return {"tax_rate_percent": rate}
-
 
 class VoucherService:
     def __init__(self, store: JsonStore, acl: AccessControl, audit: AuditLogger):
@@ -126,7 +124,6 @@ class VoucherService:
         if data["discount_type"] == DiscountType.PERCENT and not 0 < data["discount_value"] <= 100:
             raise Invalid("Diskon persen harus di antara 1 dan 100")
 
-
 class FinanceService:
     """Deposit dan tunggakan member (BE-28)."""
 
@@ -175,9 +172,8 @@ class FinanceService:
                 if overdue_only and not a.is_overdue(today):
                     continue
                 user = tx.users.get(a.user_id)
-                hasil.append(
-                    {**a.model_dump(), "is_overdue": a.is_overdue(today), "member_name": user.name if user else None}
-                )
+                hasil.append({**a.model_dump(), "is_overdue": a.is_overdue(today),
+                              "member_name": user.name if user else None})
             return sorted(hasil, key=lambda a: a["due_date"])
 
     def add_arrear(self, actor: User, data: dict) -> Arrear:

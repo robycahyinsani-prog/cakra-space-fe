@@ -15,18 +15,9 @@ from app.services.finance import FinanceService
 
 PERIOD_DAYS = 30  # kuota benefit dihitung per 30 hari sejak tanggal mulai langganan
 
-
 class MembershipService:
-    def __init__(
-        self,
-        store: JsonStore,
-        acl: AccessControl,
-        audit: AuditLogger,
-        mailer: Mailer,
-        tz: str,
-        renew_window_days: int,
-        max_freeze_days: int,
-    ):
+    def __init__(self, store: JsonStore, acl: AccessControl, audit: AuditLogger, mailer: Mailer,
+                 tz: str, renew_window_days: int, max_freeze_days: int):
         self.store = store
         self.acl = acl
         self.audit = audit
@@ -53,10 +44,10 @@ class MembershipService:
 
     @staticmethod
     def plan_view(tx: Tables, plan: Plan) -> dict:
-        benefit = [
-            {"benefit_type": b.benefit_type, "quantity": b.quantity} for b in tx.plan_benefits.where(plan_id=plan.id)
-        ]
-        return {**plan.model_dump(), "benefits": benefit, "subscriber_count": tx.subscriptions.count(plan_id=plan.id)}
+        benefit = [{"benefit_type": b.benefit_type, "quantity": b.quantity}
+                   for b in tx.plan_benefits.where(plan_id=plan.id)]
+        return {**plan.model_dump(), "benefits": benefit,
+                "subscriber_count": tx.subscriptions.count(plan_id=plan.id)}
 
     def create_plan(self, actor: User, data: dict, benefits: list[dict]) -> dict:
         with self.store.write() as tx:
@@ -112,19 +103,10 @@ class MembershipService:
     def activate(self, tx: Tables, sub: Subscription) -> Subscription:
         plan = tx.plans.require(sub.plan_id)
         mulai = self.today()
-        sub = tx.subscriptions.update(
-            sub.id,
-            status=SubscriptionStatus.ACTIVE,
-            start_date=mulai,
-            end_date=mulai + timedelta(days=plan.duration_days - 1),
-        )
-        self._notify(
-            tx,
-            sub,
-            f"Membership {plan.name} aktif",
-            f"Membership {plan.name} aktif sampai {sub.end_date:%d-%m-%Y}.",
-            "membership_active",
-        )
+        sub = tx.subscriptions.update(sub.id, status=SubscriptionStatus.ACTIVE, start_date=mulai,
+                                      end_date=mulai + timedelta(days=plan.duration_days - 1))
+        self._notify(tx, sub, f"Membership {plan.name} aktif",
+                     f"Membership {plan.name} aktif sampai {sub.end_date:%d-%m-%Y}.", "membership_active")
         return sub
 
     # perpanjang, upgrade dan downgrade (BE-36)
@@ -134,32 +116,20 @@ class MembershipService:
             sub = self._require_active(tx, user)
             sisa = (sub.end_date - self.today()).days
             if sisa > self.renew_window_days:
-                raise Conflict(
-                    f"Perpanjangan bisa dibayar paling cepat {self.renew_window_days} hari sebelum masa berlaku habis"
-                )
+                raise Conflict(f"Perpanjangan bisa dibayar paling cepat {self.renew_window_days} hari "
+                               "sebelum masa berlaku habis")
             plan = tx.plans.require(sub.scheduled_plan_id or sub.plan_id)
             return sub, plan
 
     def apply_renewal(self, tx: Tables, sub: Subscription) -> Subscription:
         plan = tx.plans.require(sub.scheduled_plan_id or sub.plan_id)
         dasar = max(sub.end_date, self.today() - timedelta(days=1))
-        sub = tx.subscriptions.update(
-            sub.id,
-            plan_id=plan.id,
-            scheduled_plan_id=None,
-            status=SubscriptionStatus.ACTIVE,
-            deactivated_at=None,
-            end_date=dasar + timedelta(days=plan.duration_days),
-            reminder_7_sent=False,
-            reminder_1_sent=False,
-        )
-        self._notify(
-            tx,
-            sub,
-            "Membership diperpanjang",
-            f"Membership {plan.name} berlaku sampai {sub.end_date:%d-%m-%Y}.",
-            "membership_renewed",
-        )
+        sub = tx.subscriptions.update(sub.id, plan_id=plan.id, scheduled_plan_id=None,
+                                      status=SubscriptionStatus.ACTIVE, deactivated_at=None,
+                                      end_date=dasar + timedelta(days=plan.duration_days),
+                                      reminder_7_sent=False, reminder_1_sent=False)
+        self._notify(tx, sub, "Membership diperpanjang",
+                     f"Membership {plan.name} berlaku sampai {sub.end_date:%d-%m-%Y}.", "membership_renewed")
         return sub
 
     def change_plan(self, user: User, plan_id: int) -> dict:
@@ -175,29 +145,18 @@ class MembershipService:
             if baru.price > lama.price:
                 sisa_hari = (sub.end_date - self.today()).days + 1
                 selisih = (baru.price - lama.price) * sisa_hari // lama.duration_days
-                return {
-                    "kind": "upgrade",
-                    "subscription": sub,
-                    "plan": baru,
-                    "prorata_amount": max(selisih, 0),
-                    "remaining_days": sisa_hari,
-                }
+                return {"kind": "upgrade", "subscription": sub, "plan": baru, "prorata_amount": max(selisih, 0),
+                        "remaining_days": sisa_hari}
             sub = tx.subscriptions.update(sub.id, scheduled_plan_id=baru.id)
             self.audit.record(tx, user.id, "subscription.downgrade", "subscription", sub.id, plan_id=baru.id)
-            return {
-                "kind": "downgrade",
-                "subscription": sub,
-                "plan": baru,
-                "prorata_amount": 0,
-                "effective_date": sub.end_date + timedelta(days=1),
-            }
+            return {"kind": "downgrade", "subscription": sub, "plan": baru, "prorata_amount": 0,
+                    "effective_date": sub.end_date + timedelta(days=1)}
 
     def apply_upgrade(self, tx: Tables, sub: Subscription, plan_id: int) -> Subscription:
         plan = tx.plans.require(plan_id)
         sub = tx.subscriptions.update(sub.id, plan_id=plan_id, scheduled_plan_id=None)
-        self._notify(
-            tx, sub, "Paket membership berhasil di-upgrade", f"Paket Anda sekarang {plan.name}.", "membership_upgraded"
-        )
+        self._notify(tx, sub, "Paket membership berhasil di-upgrade",
+                     f"Paket Anda sekarang {plan.name}.", "membership_upgraded")
         return sub
 
     # freeze (BE-38)
@@ -216,11 +175,8 @@ class MembershipService:
                 sisa = self.max_freeze_days - sub.freeze_days_used
                 raise Invalid(f"Freeze paling lama {self.max_freeze_days} hari per periode, sisa {sisa} hari")
             sub = tx.subscriptions.update(
-                sub.id,
-                freeze_from=start,
-                freeze_until=start + timedelta(days=days - 1),
-                freeze_days_used=sub.freeze_days_used + days,
-                end_date=sub.end_date + timedelta(days=days),
+                sub.id, freeze_from=start, freeze_until=start + timedelta(days=days - 1),
+                freeze_days_used=sub.freeze_days_used + days, end_date=sub.end_date + timedelta(days=days),
             )
             self.audit.record(tx, user.id, "subscription.freeze", "subscription", sub.id, days=days)
             return sub
@@ -235,11 +191,9 @@ class MembershipService:
             sisa = (sub.freeze_until - mulai_sisa).days + 1
             akhir_freeze = today - timedelta(days=1)
             return tx.subscriptions.update(
-                sub.id,
-                freeze_until=akhir_freeze if sub.freeze_from <= akhir_freeze else None,
+                sub.id, freeze_until=akhir_freeze if sub.freeze_from <= akhir_freeze else None,
                 freeze_from=sub.freeze_from if sub.freeze_from <= akhir_freeze else None,
-                freeze_days_used=sub.freeze_days_used - sisa,
-                end_date=sub.end_date - timedelta(days=sisa),
+                freeze_days_used=sub.freeze_days_used - sisa, end_date=sub.end_date - timedelta(days=sisa),
             )
 
     # kuota benefit (BE-37)
@@ -252,30 +206,17 @@ class MembershipService:
         awal = self.period_start(sub, day)
         hasil = []
         for b in tx.plan_benefits.where(plan_id=sub.plan_id):
-            terpakai = sum(
-                u.minutes
-                for u in tx.benefit_usages.where(
-                    lambda u: u.reversed_at is None and u.period_start == awal,
-                    subscription_id=sub.id,
-                    benefit_type=b.benefit_type,
-                )
-            )
+            terpakai = sum(u.minutes for u in tx.benefit_usages.where(
+                lambda u: u.reversed_at is None and u.period_start == awal,
+                subscription_id=sub.id, benefit_type=b.benefit_type))
             kuota = b.quantity * 60
-            hasil.append(
-                {
-                    "benefit_type": b.benefit_type,
-                    "quota_minutes": kuota,
-                    "used_minutes": terpakai,
-                    "remaining_minutes": max(kuota - terpakai, 0),
-                    "period_start": awal,
-                    "period_end": min(awal + timedelta(days=PERIOD_DAYS - 1), sub.end_date),
-                }
-            )
+            hasil.append({"benefit_type": b.benefit_type, "quota_minutes": kuota, "used_minutes": terpakai,
+                          "remaining_minutes": max(kuota - terpakai, 0), "period_start": awal,
+                          "period_end": min(awal + timedelta(days=PERIOD_DAYS - 1), sub.end_date)})
         return hasil
 
-    def meeting_room_benefit(
-        self, tx: Tables, user_id: int, building_id: int, day: date
-    ) -> tuple[Subscription, int] | None:
+    def meeting_room_benefit(self, tx: Tables, user_id: int, building_id: int,
+                             day: date) -> tuple[Subscription, int] | None:
         sub = self.current(tx, user_id)
         if sub is None or not sub.is_usable_on(day):
             return None
@@ -287,15 +228,9 @@ class MembershipService:
         return None
 
     def consume(self, tx: Tables, sub: Subscription, booking: Booking, minutes: int, day: date) -> None:
-        tx.benefit_usages.add(
-            BenefitUsage(
-                subscription_id=sub.id,
-                booking_id=booking.id,
-                benefit_type=BenefitType.MEETING_ROOM_HOURS,
-                minutes=minutes,
-                period_start=self.period_start(sub, day),
-            )
-        )
+        tx.benefit_usages.add(BenefitUsage(subscription_id=sub.id, booking_id=booking.id,
+                                           benefit_type=BenefitType.MEETING_ROOM_HOURS, minutes=minutes,
+                                           period_start=self.period_start(sub, day)))
 
     @staticmethod
     def reverse(tx: Tables, booking_id: int) -> None:
@@ -316,13 +251,8 @@ class MembershipService:
             return {"status": "not_subscribed", "subscription": None}
         plan = tx.plans.require(sub.plan_id)
         status = self.status_label(sub, today)
-        data = {
-            "status": status,
-            "subscription": sub,
-            "plan": self.plan_view(tx, plan),
-            "scheduled_plan": tx.plans.get(sub.scheduled_plan_id),
-            "benefits": [],
-        }
+        data = {"status": status, "subscription": sub, "plan": self.plan_view(tx, plan),
+                "scheduled_plan": tx.plans.get(sub.scheduled_plan_id), "benefits": []}
         if sub.start_date and status in ("active", "frozen"):
             data["benefits"] = self.benefit_status(tx, sub, today)
             data["days_left"] = (sub.end_date - today).days
@@ -368,23 +298,14 @@ class MembershipService:
                 continue
             sisa = (sub.end_date - today).days
             if sisa <= 7 and not sub.reminder_7_sent:
-                self._notify(
-                    tx,
-                    sub,
-                    "Membership berakhir 7 hari lagi",
-                    f"Membership {nama} berakhir {sub.end_date:%d-%m-%Y}. Perpanjang dari dashboard.",
-                    "membership_reminder",
-                )
+                self._notify(tx, sub, "Membership berakhir 7 hari lagi",
+                             f"Membership {nama} berakhir {sub.end_date:%d-%m-%Y}. Perpanjang dari dashboard.",
+                             "membership_reminder")
                 tx.subscriptions.update(sub.id, reminder_7_sent=True)
                 hasil["reminders"] += 1
             if sisa <= 1 and not sub.reminder_1_sent:
-                self._notify(
-                    tx,
-                    sub,
-                    "Membership berakhir besok",
-                    f"Membership {nama} berakhir {sub.end_date:%d-%m-%Y}.",
-                    "membership_reminder",
-                )
+                self._notify(tx, sub, "Membership berakhir besok",
+                             f"Membership {nama} berakhir {sub.end_date:%d-%m-%Y}.", "membership_reminder")
                 tx.subscriptions.update(sub.id, reminder_1_sent=True)
                 hasil["reminders"] += 1
         return hasil

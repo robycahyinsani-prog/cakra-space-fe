@@ -8,26 +8,20 @@ class AppError(Exception):
         self.message = message
         self.extra = extra
 
-
 class Unauthorized(AppError):
     status_code = 401
-
 
 class Forbidden(AppError):
     status_code = 403
 
-
 class NotFound(AppError):
     status_code = 404
-
 
 class Conflict(AppError):
     status_code = 409
 
-
 class Invalid(AppError):
     status_code = 422
-
 
 class Locked(AppError):
     status_code = 423

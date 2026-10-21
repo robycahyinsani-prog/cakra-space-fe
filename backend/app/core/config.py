@@ -8,15 +8,12 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 
-
 def _path(nama: str, bawaan: str) -> Path:
     nilai = Path(os.getenv(nama, bawaan))
     return nilai if nilai.is_absolute() else BASE_DIR / nilai
 
-
 def _list(nama: str, bawaan: str) -> list[str]:
     return [x.strip() for x in os.getenv(nama, bawaan).split(",") if x.strip()]
-
 
 @dataclass(frozen=True)
 class Settings:
@@ -63,16 +60,13 @@ class Settings:
     def webhook_secret(self) -> str:
         return self.payment_webhook_secret or f"{self.secret_key}:webhook"
 
-
 _settings: Settings | None = None
-
 
 def get_settings() -> Settings:
     global _settings
     if _settings is None:
         _settings = Settings()
     return _settings
-
 
 def reset_settings() -> None:
     global _settings

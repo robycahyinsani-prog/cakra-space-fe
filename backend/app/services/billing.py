@@ -29,7 +29,6 @@ from app.services.access_control import AccessControl
 from app.services.audit import AuditLogger
 from app.services.finance import SettingService
 
-
 class InvoiceService:
     """Invoice bernomor per gedung (BE-24) dan pengiriman lewat email (BE-25)."""
 
@@ -48,37 +47,19 @@ class InvoiceService:
         counter = tx.invoice_counters.update(counter.id, last_seq=counter.last_seq + 1)
         return f"INV/{building_code}/{periode}/{counter.last_seq:04d}"
 
-    def ensure(
-        self,
-        tx: Tables,
-        payment: Payment,
-        building: Building | None,
-        description: str,
-        subtotal: int,
-        discount: int,
-        tax: int,
-    ) -> Invoice:
+    def ensure(self, tx: Tables, payment: Payment, building: Building | None, description: str,
+               subtotal: int, discount: int, tax: int) -> Invoice:
         """Satu invoice per transaksi. Invoice belum lunas dipakai ulang kalau member mengganti metode bayar."""
-        lama = tx.invoices.first(
-            lambda i: i.status == InvoiceStatus.UNPAID, purpose=payment.purpose, reference_id=payment.reference_id
-        )
+        lama = tx.invoices.first(lambda i: i.status == InvoiceStatus.UNPAID, purpose=payment.purpose,
+                                 reference_id=payment.reference_id)
         if lama:
             return tx.invoices.update(lama.id, payment_id=payment.id)
-        return tx.invoices.add(
-            Invoice(
-                number=self.next_number(tx, building.code if building else "CS"),
-                building_id=building.id if building else None,
-                user_id=payment.user_id,
-                payment_id=payment.id,
-                purpose=payment.purpose,
-                reference_id=payment.reference_id,
-                description=description,
-                subtotal=subtotal,
-                discount=discount,
-                tax=tax,
-                total=payment.amount,
-            )
-        )
+        return tx.invoices.add(Invoice(
+            number=self.next_number(tx, building.code if building else "CS"),
+            building_id=building.id if building else None, user_id=payment.user_id, payment_id=payment.id,
+            purpose=payment.purpose, reference_id=payment.reference_id, description=description,
+            subtotal=subtotal, discount=discount, tax=tax, total=payment.amount,
+        ))
 
     def mark_paid(self, tx: Tables, payment: Payment) -> Invoice | None:
         inv = tx.invoices.first(payment_id=payment.id)
@@ -86,34 +67,20 @@ class InvoiceService:
             return None
         inv = tx.invoices.update(inv.id, status=InvoiceStatus.PAID, paid_at=payment.paid_at, emailed_at=clock.now())
         user = tx.users.require(inv.user_id)
-        self.mailer.send(
-            tx,
-            user.email,
-            f"Invoice {inv.number}",
-            f"Terima kasih, pembayaran {rupiah(inv.total)} sudah kami terima. Unduh invoice PDF di "
-            f"{self.settings.frontend_url}/invoices/{inv.id}",
-            "invoice",
-            user.id,
-        )
+        self.mailer.send(tx, user.email, f"Invoice {inv.number}",
+                         f"Terima kasih, pembayaran {rupiah(inv.total)} sudah kami terima. Unduh invoice PDF di "
+                         f"{self.settings.frontend_url}/invoices/{inv.id}", "invoice", user.id)
         return inv
 
     def list_mine(self, user: User) -> list[dict]:
         with self.store.read() as tx:
-            items = sorted(
-                tx.invoices.where(lambda i: i.status != InvoiceStatus.VOID, user_id=user.id),
-                key=lambda i: i.id,
-                reverse=True,
-            )
+            items = sorted(tx.invoices.where(lambda i: i.status != InvoiceStatus.VOID, user_id=user.id),
+                           key=lambda i: i.id, reverse=True)
             hasil = []
             for inv in items:
                 # tagihan yang belum lunas punya tombol Bayar Sekarang (AC K5-US-008.3)
-                hasil.append(
-                    {
-                        **inv.model_dump(),
-                        "can_pay": inv.status == InvoiceStatus.UNPAID,
-                        "pay": {"purpose": inv.purpose, "reference_id": inv.reference_id},
-                    }
-                )
+                hasil.append({**inv.model_dump(), "can_pay": inv.status == InvoiceStatus.UNPAID,
+                              "pay": {"purpose": inv.purpose, "reference_id": inv.reference_id}})
             return hasil
 
     def render(self, user: User, invoice_id: int) -> tuple[bytes, str]:
@@ -127,28 +94,19 @@ class InvoiceService:
             building = tx.buildings.get(inv.building_id)
             tarif = SettingService.tax_rate(tx)
         data = {
-            "number": inv.number,
-            "status": inv.status,
-            "description": inv.description,
+            "number": inv.number, "status": inv.status, "description": inv.description,
             "issued_at": inv.created_at.astimezone(ZoneInfo(self.settings.timezone)).strftime("%d-%m-%Y %H:%M"),
-            "customer_name": pemilik.name,
-            "customer_email": pemilik.email,
+            "customer_name": pemilik.name, "customer_email": pemilik.email,
             "building_name": building.name if building else None,
-            "subtotal": inv.subtotal,
-            "discount": inv.discount,
-            "tax": inv.tax,
-            "total": inv.total,
-            "tax_rate": tarif,
+            "subtotal": inv.subtotal, "discount": inv.discount, "tax": inv.tax, "total": inv.total, "tax_rate": tarif,
         }
         return self.pdf.build(data), inv.number.replace("/", "-") + ".pdf"
-
 
 class RefundService:
     """Refund booking yang dibatalkan sesuai aturan gedung (BE-26, BE-27)."""
 
-    def __init__(
-        self, store: JsonStore, acl: AccessControl, audit: AuditLogger, mailer: Mailer, gateway: SandboxGateway
-    ):
+    def __init__(self, store: JsonStore, acl: AccessControl, audit: AuditLogger, mailer: Mailer,
+                 gateway: SandboxGateway):
         self.store = store
         self.acl = acl
         self.audit = audit
@@ -166,58 +124,37 @@ class RefundService:
 
     def request(self, tx: Tables, booking: Booking, payment: Payment, building: Building) -> Refund:
         persen = self.percent_for(building, booking, clock.now())
-        refund = tx.refunds.add(
-            Refund(
-                booking_id=booking.id,
-                payment_id=payment.id,
-                user_id=booking.user_id,
-                building_id=building.id,
-                amount=payment.amount * persen // 100,
-                percent=persen,
-                status=RefundStatus.REQUESTED if persen else RefundStatus.REJECTED,
-                reason="Booking dibatalkan member",
-                note=None if persen else "Pembatalan melewati batas refund gedung",
-            )
-        )
+        refund = tx.refunds.add(Refund(
+            booking_id=booking.id, payment_id=payment.id, user_id=booking.user_id, building_id=building.id,
+            amount=payment.amount * persen // 100, percent=persen,
+            status=RefundStatus.REQUESTED if persen else RefundStatus.REJECTED,
+            reason="Booking dibatalkan member",
+            note=None if persen else "Pembatalan melewati batas refund gedung",
+        ))
         return refund
 
     def auto_refund(self, tx: Tables, booking: Booking, payment: Payment) -> Refund:
         """Pembayaran yang datang setelah booking kedaluwarsa dikembalikan penuh."""
         ref = self.gateway.refund(payment.gateway_ref, payment.amount)
         tx.payments.update(payment.id, status=PaymentStatus.REFUNDED)
-        return tx.refunds.add(
-            Refund(
-                booking_id=booking.id,
-                payment_id=payment.id,
-                user_id=booking.user_id,
-                building_id=booking.building_id,
-                amount=payment.amount,
-                percent=100,
-                status=RefundStatus.PROCESSED,
-                reason="Pembayaran terlambat",
-                decided_at=clock.now(),
-                gateway_refund_ref=ref,
-            )
-        )
+        return tx.refunds.add(Refund(
+            booking_id=booking.id, payment_id=payment.id, user_id=booking.user_id, building_id=booking.building_id,
+            amount=payment.amount, percent=100, status=RefundStatus.PROCESSED, reason="Pembayaran terlambat",
+            decided_at=clock.now(), gateway_refund_ref=ref,
+        ))
 
     def list(self, actor: User, building_id: int | None, status: RefundStatus | None) -> list[dict]:
         with self.store.read() as tx:
             self.acl.require(tx, actor, "refunds.manage")
             gedung = self.acl.filter_buildings(tx, actor, building_id)
-            items = tx.refunds.where(
-                lambda r: (gedung is None or r.building_id in gedung) and (status is None or r.status == status)
-            )
+            items = tx.refunds.where(lambda r: (gedung is None or r.building_id in gedung)
+                                     and (status is None or r.status == status))
             hasil = []
             for r in sorted(items, key=lambda r: r.id, reverse=True):
                 booking = tx.bookings.get(r.booking_id)
                 member = tx.users.get(r.user_id)
-                hasil.append(
-                    {
-                        **r.model_dump(),
-                        "booking_code": booking.code if booking else None,
-                        "member_name": member.name if member else None,
-                    }
-                )
+                hasil.append({**r.model_dump(), "booking_code": booking.code if booking else None,
+                              "member_name": member.name if member else None})
             return hasil
 
     def approve(self, actor: User, refund_id: int) -> Refund:
@@ -225,40 +162,28 @@ class RefundService:
             refund = self._pending(tx, actor, refund_id)
             payment = tx.payments.require(refund.payment_id)
             ref = self.gateway.refund(payment.gateway_ref, refund.amount)
-            refund = tx.refunds.update(
-                refund.id,
-                status=RefundStatus.PROCESSED,
-                decided_by=actor.id,
-                decided_at=clock.now(),
-                gateway_refund_ref=ref,
-            )
+            refund = tx.refunds.update(refund.id, status=RefundStatus.PROCESSED, decided_by=actor.id,
+                                       decided_at=clock.now(), gateway_refund_ref=ref)
             if refund.amount >= payment.amount:
                 tx.payments.update(payment.id, status=PaymentStatus.REFUNDED)
                 inv = tx.invoices.first(payment_id=payment.id)
                 if inv:
                     tx.invoices.update(inv.id, status=InvoiceStatus.REFUNDED)
             member = tx.users.require(refund.user_id)
-            self.mailer.send(
-                tx,
-                member.email,
-                "Refund diproses",
-                f"Refund {rupiah(refund.amount)} ({refund.percent}%) sudah diproses ke metode pembayaran awal.",
-                "refund_processed",
-                member.id,
-            )
+            self.mailer.send(tx, member.email, "Refund diproses",
+                             f"Refund {rupiah(refund.amount)} ({refund.percent}%) sudah diproses ke metode "
+                             "pembayaran awal.", "refund_processed", member.id)
             self.audit.record(tx, actor.id, "refund.approve", "refund", refund.id, amount=refund.amount)
             return refund
 
     def reject(self, actor: User, refund_id: int, note: str) -> Refund:
         with self.store.write() as tx:
             refund = self._pending(tx, actor, refund_id)
-            refund = tx.refunds.update(
-                refund.id, status=RefundStatus.REJECTED, decided_by=actor.id, decided_at=clock.now(), note=note
-            )
+            refund = tx.refunds.update(refund.id, status=RefundStatus.REJECTED, decided_by=actor.id,
+                                       decided_at=clock.now(), note=note)
             member = tx.users.require(refund.user_id)
-            self.mailer.send(
-                tx, member.email, "Refund ditolak", f"Permintaan refund ditolak: {note}", "refund_rejected", member.id
-            )
+            self.mailer.send(tx, member.email, "Refund ditolak", f"Permintaan refund ditolak: {note}",
+                             "refund_rejected", member.id)
             self.audit.record(tx, actor.id, "refund.reject", "refund", refund.id, note=note)
             return refund
 
@@ -269,21 +194,11 @@ class RefundService:
             raise Conflict("Refund ini sudah diputuskan")
         return refund
 
-
 class PaymentService:
     """Pembayaran lewat payment gateway (BE-22) dan webhook status (BE-23)."""
 
-    def __init__(
-        self,
-        store: JsonStore,
-        settings: Settings,
-        gateway: SandboxGateway,
-        invoices: InvoiceService,
-        refunds: RefundService,
-        bookings,
-        membership,
-        audit: AuditLogger,
-    ):
+    def __init__(self, store: JsonStore, settings: Settings, gateway: SandboxGateway, invoices: InvoiceService,
+                 refunds: RefundService, bookings, membership, audit: AuditLogger):
         self.store = store
         self.settings = settings
         self.gateway = gateway
@@ -293,9 +208,8 @@ class PaymentService:
         self.membership = membership
         self.audit = audit
 
-    def create(
-        self, user: User, purpose: PaymentPurpose, reference_id: int, method: PaymentMethod, plan_id: int | None = None
-    ) -> dict:
+    def create(self, user: User, purpose: PaymentPurpose, reference_id: int, method: PaymentMethod,
+               plan_id: int | None = None) -> dict:
         if purpose == PaymentPurpose.RENEWAL:
             sub, plan = self.membership.renewal_quote(user)
             reference_id, meta = sub.id, {"plan_id": plan.id}
@@ -312,14 +226,8 @@ class PaymentService:
                 with self.store.write() as tx:
                     self.membership.apply_upgrade(tx, tx.subscriptions.require(sub.id), plan_id)
                 return {"payment": None, "change": hasil}
-            tagihan = (
-                hasil["prorata_amount"],
-                f"Upgrade ke paket {hasil['plan'].name} (prorata)",
-                None,
-                hasil["prorata_amount"],
-                0,
-                0,
-            )
+            tagihan = (hasil["prorata_amount"], f"Upgrade ke paket {hasil['plan'].name} (prorata)", None,
+                       hasil["prorata_amount"], 0, 0)
         else:
             meta = {}
             tagihan = None
@@ -335,18 +243,9 @@ class PaymentService:
             for lama in tx.payments.where(purpose=purpose, reference_id=reference_id, status=PaymentStatus.PENDING):
                 tx.payments.update(lama.id, status=PaymentStatus.EXPIRED)
             charge = self.gateway.create_charge(method, amount, expires_at)
-            payment = tx.payments.add(
-                Payment(
-                    purpose=purpose,
-                    reference_id=reference_id,
-                    user_id=user.id,
-                    method=method,
-                    amount=amount,
-                    expires_at=expires_at,
-                    meta=meta,
-                    **charge,
-                )
-            )
+            payment = tx.payments.add(Payment(purpose=purpose, reference_id=reference_id, user_id=user.id,
+                                              method=method, amount=amount, expires_at=expires_at, meta=meta,
+                                              **charge))
             inv = self.invoices.ensure(tx, payment, building, description, subtotal, discount, tax)
             return {"payment": self.view(payment), "invoice": {"id": inv.id, "number": inv.number}}
 
@@ -375,15 +274,8 @@ class PaymentService:
         if not self.gateway.verify(raw, signature):
             # percobaan dengan signature palsu tetap tercatat di log transaksi
             with self.store.write() as tx:
-                tx.payment_events.add(
-                    PaymentEvent(
-                        event_id=event_id,
-                        status=status,
-                        payload=body,
-                        signature_valid=False,
-                        result="invalid_signature",
-                    )
-                )
+                tx.payment_events.add(PaymentEvent(event_id=event_id, status=status, payload=body,
+                                                   signature_valid=False, result="invalid_signature"))
             raise Unauthorized("Signature webhook tidak valid")
 
         with self.store.write() as tx:
@@ -392,16 +284,8 @@ class PaymentService:
                 return {"received": True, "duplicate": True}
             payment = tx.payments.first(gateway_ref=ref)
             hasil = self._apply(tx, payment, status, amount)
-            tx.payment_events.add(
-                PaymentEvent(
-                    payment_id=payment.id if payment else None,
-                    event_id=event_id,
-                    status=status,
-                    payload=body,
-                    signature_valid=True,
-                    result=hasil,
-                )
-            )
+            tx.payment_events.add(PaymentEvent(payment_id=payment.id if payment else None, event_id=event_id,
+                                               status=status, payload=body, signature_valid=True, result=hasil))
             return {"received": True, "duplicate": False, "result": hasil}
 
     def _apply(self, tx: Tables, payment: Payment | None, status: str, amount: int) -> str:
@@ -425,8 +309,7 @@ class PaymentService:
         if payment.purpose == PaymentPurpose.BOOKING:
             booking = tx.bookings.require(payment.reference_id)
             masih_hold = booking.status == BookingStatus.PENDING_PAYMENT and (
-                booking.hold_expires_at is None or booking.hold_expires_at > clock.now()
-            )
+                booking.hold_expires_at is None or booking.hold_expires_at > clock.now())
             if not masih_hold:
                 self.refunds.auto_refund(tx, booking, payment)
                 return "late_payment_refunded"
@@ -468,20 +351,13 @@ class PaymentService:
             if booking is None or booking.user_id != user.id:
                 raise NotFound("Booking tidak ditemukan")
             if booking.status != BookingStatus.PENDING_PAYMENT or (
-                booking.hold_expires_at and booking.hold_expires_at <= clock.now()
-            ):
+                    booking.hold_expires_at and booking.hold_expires_at <= clock.now()):
                 raise Conflict("Booking ini tidak menunggu pembayaran")
             area = tx.areas.require(booking.area_id)
             building = tx.buildings.require(booking.building_id)
             diskon = booking.benefit_discount + booking.voucher_discount
-            return (
-                booking.total,
-                f"Booking {booking.code} - {area.name}",
-                building,
-                booking.subtotal,
-                diskon,
-                booking.tax,
-            )
+            return (booking.total, f"Booking {booking.code} - {area.name}", building, booking.subtotal, diskon,
+                    booking.tax)
         sub = tx.subscriptions.get(reference_id)
         if sub is None or sub.user_id != user.id:
             raise NotFound("Langganan tidak ditemukan")

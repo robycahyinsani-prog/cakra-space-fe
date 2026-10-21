@@ -19,7 +19,6 @@ from app.services.membership import MembershipService
 from app.services.pricing import PricingService
 from app.services.reports import ExportService, ReportService
 
-
 class Container:
     """Merangkai semua layanan satu kali saat aplikasi dibuat."""
 
@@ -46,13 +45,11 @@ class Container:
         self.pricing = PricingService(self.membership)
         self.availability = AvailabilityService(st, self.buildings, s)
         self.refunds = RefundService(st, acl, audit, mail, self.gateway)
-        self.bookings = BookingService(
-            st, s, acl, audit, mail, self.buildings, self.pricing, self.membership, self.refunds
-        )
+        self.bookings = BookingService(st, s, acl, audit, mail, self.buildings, self.pricing, self.membership,
+                                       self.refunds)
         self.invoices = InvoiceService(st, acl, mail, s)
-        self.payments = PaymentService(
-            st, s, self.gateway, self.invoices, self.refunds, self.bookings, self.membership, audit
-        )
+        self.payments = PaymentService(st, s, self.gateway, self.invoices, self.refunds, self.bookings,
+                                       self.membership, audit)
         self.access = AccessService(st, s, acl, mail, self.membership)
         self.announcements = AnnouncementService(st, acl)
         self.dashboard = MemberDashboard(st, s, self.membership, self.announcements)

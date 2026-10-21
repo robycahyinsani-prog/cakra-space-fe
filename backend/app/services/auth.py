@@ -13,7 +13,6 @@ from app.models.enums import Role, TokenPurpose
 
 SAMA_UNTUK_SEMUA = "Kalau email terdaftar, link reset password sudah dikirim ke email tersebut."
 
-
 @dataclass
 class LoginResult:
     token: str
@@ -21,11 +20,9 @@ class LoginResult:
     user: User
     landing: str
 
-
 class AuthService:
-    def __init__(
-        self, store: JsonStore, settings: Settings, mailer: Mailer, hasher: PasswordHasher, tokens: TokenService
-    ):
+    def __init__(self, store: JsonStore, settings: Settings, mailer: Mailer,
+                 hasher: PasswordHasher, tokens: TokenService):
         self.store = store
         self.settings = settings
         self.mailer = mailer
@@ -100,17 +97,13 @@ class AuthService:
         with self.store.write() as tx:
             user = tx.users.first(email=self.normalize(email))
             if user:
-                token = self._issue(
-                    tx, user, TokenPurpose.RESET_PASSWORD, timedelta(minutes=self.settings.reset_password_minutes)
-                )
+                token = self._issue(tx, user, TokenPurpose.RESET_PASSWORD,
+                                    timedelta(minutes=self.settings.reset_password_minutes))
                 self.mailer.send(
-                    tx,
-                    user.email,
-                    "Reset password Cakra Space",
+                    tx, user.email, "Reset password Cakra Space",
                     f"Buka link berikut untuk membuat password baru (berlaku 30 menit, sekali pakai):\n"
                     f"{self.settings.frontend_url}/reset-password?token={token}",
-                    "reset_password",
-                    user.id,
+                    "reset_password", user.id,
                 )
         # pesan sama untuk email terdaftar maupun tidak supaya tidak bisa dipakai menebak akun
         return SAMA_UNTUK_SEMUA
@@ -120,13 +113,8 @@ class AuthService:
             row = self._use_token(tx, token, TokenPurpose.RESET_PASSWORD, "Link reset password")
             user = tx.users.require(row.user_id)
             # token_version naik sehingga semua sesi lama berakhir
-            tx.users.update(
-                user.id,
-                password_hash=self.hasher.hash(new_password),
-                token_version=user.token_version + 1,
-                failed_logins=0,
-                locked_until=None,
-            )
+            tx.users.update(user.id, password_hash=self.hasher.hash(new_password),
+                            token_version=user.token_version + 1, failed_logins=0, locked_until=None)
 
     def change_password(self, user: User, current: str, new_password: str) -> LoginResult:
         if current == new_password:
@@ -135,12 +123,8 @@ class AuthService:
             user = tx.users.require(user.id)
             if not self.hasher.verify(current, user.password_hash):
                 raise Unauthorized("Password lama salah")
-            user = tx.users.update(
-                user.id,
-                password_hash=self.hasher.hash(new_password),
-                must_change_password=False,
-                token_version=user.token_version + 1,
-            )
+            user = tx.users.update(user.id, password_hash=self.hasher.hash(new_password),
+                                   must_change_password=False, token_version=user.token_version + 1)
         token, exp = self.tokens.issue(user.id, user.role, user.token_version)
         return LoginResult(token=token, expires_at=exp, user=user, landing=self.landing_for(user))
 
@@ -154,20 +138,13 @@ class AuthService:
                 raise Unauthorized("Password salah")
             if tx.users.exists(email=new_email):
                 raise Conflict("Email sudah dipakai akun lain")
-            token = self._issue(
-                tx,
-                user,
-                TokenPurpose.CHANGE_EMAIL,
-                timedelta(hours=self.settings.verify_email_hours),
-                new_email=new_email,
-            )
+            token = self._issue(tx, user, TokenPurpose.CHANGE_EMAIL,
+                                timedelta(hours=self.settings.verify_email_hours), new_email=new_email)
             self.mailer.send(
-                tx,
-                new_email,
-                "Konfirmasi email baru Cakra Space",
-                f"Buka link berikut untuk memakai email ini:\n{self.settings.frontend_url}/confirm-email?token={token}",
-                "change_email",
-                user.id,
+                tx, new_email, "Konfirmasi email baru Cakra Space",
+                f"Buka link berikut untuk memakai email ini:\n"
+                f"{self.settings.frontend_url}/confirm-email?token={token}",
+                "change_email", user.id,
             )
 
     def confirm_email_change(self, token: str) -> User:
@@ -195,36 +172,28 @@ class AuthService:
     def _record_failure(self, tx: Tables, user: User, now: datetime) -> None:
         gagal = user.failed_logins + 1
         if gagal >= self.settings.login_max_attempts:
-            tx.users.update(
-                user.id, failed_logins=0, locked_until=now + timedelta(minutes=self.settings.login_lock_minutes)
-            )
+            tx.users.update(user.id, failed_logins=0,
+                            locked_until=now + timedelta(minutes=self.settings.login_lock_minutes))
         else:
             tx.users.update(user.id, failed_logins=gagal)
 
     def _send_verification(self, tx: Tables, user: User) -> None:
         token = self._issue(tx, user, TokenPurpose.VERIFY_EMAIL, timedelta(hours=self.settings.verify_email_hours))
         self.mailer.send(
-            tx,
-            user.email,
-            "Verifikasi email Cakra Space",
+            tx, user.email, "Verifikasi email Cakra Space",
             f"Halo {user.name}, buka link berikut untuk verifikasi akun (berlaku 24 jam):\n"
             f"{self.settings.frontend_url}/verify-email?token={token}",
-            "verify_email",
-            user.id,
+            "verify_email", user.id,
         )
 
-    def _issue(
-        self, tx: Tables, user: User, purpose: TokenPurpose, ttl: timedelta, new_email: str | None = None
-    ) -> str:
+    def _issue(self, tx: Tables, user: User, purpose: TokenPurpose, ttl: timedelta,
+               new_email: str | None = None) -> str:
         # token lama untuk tujuan yang sama dimatikan supaya hanya link terbaru yang berlaku
         for lama in tx.email_tokens.where(lambda t: t.used_at is None, user_id=user.id, purpose=purpose):
             tx.email_tokens.update(lama.id, used_at=clock.now())
         token, digest = OneTimeToken.new()
-        tx.email_tokens.add(
-            EmailToken(
-                user_id=user.id, purpose=purpose, token_hash=digest, new_email=new_email, expires_at=clock.now() + ttl
-            )
-        )
+        tx.email_tokens.add(EmailToken(user_id=user.id, purpose=purpose, token_hash=digest,
+                                       new_email=new_email, expires_at=clock.now() + ttl))
         return token
 
     def _use_token(self, tx: Tables, token: str, purpose: TokenPurpose, label: str) -> EmailToken:

@@ -23,7 +23,6 @@ from app.models.location import (
 from app.services.access_control import AccessControl
 from app.services.audit import AuditLogger
 
-
 class Schedule:
     """Jam buka dan hari libur per gedung (BE-09)."""
 
@@ -34,10 +33,8 @@ class Schedule:
         jam = tx.operating_hours.first(building_id=building.id, weekday=day.weekday())
         if jam is None or jam.is_closed:
             return None
-        return (
-            clock.combine(day, jam.open_time, building.timezone),
-            clock.combine(day, jam.close_time, building.timezone),
-        )
+        return (clock.combine(day, jam.open_time, building.timezone),
+                clock.combine(day, jam.close_time, building.timezone))
 
     @staticmethod
     def default_hours(building_id: int) -> list[OperatingHour]:
@@ -45,13 +42,9 @@ class Schedule:
         hasil = []
         for hari in range(7):
             buka, tutup = (time(8), time(21)) if hari < 5 else (time(9), time(18))
-            hasil.append(
-                OperatingHour(
-                    building_id=building_id, weekday=hari, open_time=buka, close_time=tutup, is_closed=hari == 6
-                )
-            )
+            hasil.append(OperatingHour(building_id=building_id, weekday=hari, open_time=buka,
+                                       close_time=tutup, is_closed=hari == 6))
         return hasil
-
 
 class BookingRules:
     """Status booking yang masih memegang slot, dipakai banyak layanan."""
@@ -69,7 +62,6 @@ class BookingRules:
     @staticmethod
     def active_future(tx: Tables, now: datetime, **eq) -> list[Booking]:
         return tx.bookings.where(lambda b: BookingRules.holds_slot(b, now) and b.end_at > now, **eq)
-
 
 class BuildingService:
     def __init__(self, store: JsonStore, acl: AccessControl, audit: AuditLogger, upload_dir: Path):
@@ -267,8 +259,7 @@ class BuildingService:
             fasilitas = [self._facility_for(tx, fid, building_id, FacilityScope.BUILDING) for fid in set(facility_ids)]
             tx.building_facilities.delete_where(building_id=building_id)
             tx.building_facilities.add_many(
-                BuildingFacility(building_id=building_id, facility_id=f.id) for f in fasilitas
-            )
+                BuildingFacility(building_id=building_id, facility_id=f.id) for f in fasilitas)
             return fasilitas
 
     @staticmethod
@@ -277,7 +268,6 @@ class BuildingService:
         if f.scope != scope or f.building_id not in (None, building_id):
             raise Invalid(f"Fasilitas {f.name} tidak bisa dipakai di sini")
         return f
-
 
 class AreaService:
     def __init__(self, store: JsonStore, acl: AccessControl, audit: AuditLogger, buildings: BuildingService):
@@ -288,14 +278,8 @@ class AreaService:
 
     # area meja dan ruang rapat (BE-11, BE-12)
 
-    def list(
-        self,
-        user: User | None,
-        building_id: int,
-        area_type: AreaType | None = None,
-        floor_id: int | None = None,
-        min_capacity: int | None = None,
-    ) -> list[dict]:
+    def list(self, user: User | None, building_id: int, area_type: AreaType | None = None,
+             floor_id: int | None = None, min_capacity: int | None = None) -> list[dict]:
         with self.store.read() as tx:
             self.buildings.visible(tx, user, building_id)
             items = tx.areas.where(building_id=building_id)
@@ -322,11 +306,8 @@ class AreaService:
     def view(tx: Tables, area: Area) -> dict:
         fasilitas = [tx.facilities.get(af.facility_id) for af in tx.area_facilities.where(area_id=area.id)]
         lantai = tx.floors.get(area.floor_id)
-        return {
-            **area.model_dump(),
-            "floor_name": lantai.name if lantai else None,
-            "facilities": [f.name for f in fasilitas if f],
-        }
+        return {**area.model_dump(), "floor_name": lantai.name if lantai else None,
+                "facilities": [f.name for f in fasilitas if f]}
 
     def create(self, actor: User, data: dict) -> dict:
         with self.store.write() as tx:
@@ -371,10 +352,8 @@ class AreaService:
         with self.store.write() as tx:
             area = tx.areas.require(area_id)
             self.acl.require_building(tx, actor, "areas.manage", area.building_id)
-            fasilitas = [
-                BuildingService._facility_for(tx, fid, area.building_id, FacilityScope.AREA)
-                for fid in set(facility_ids)
-            ]
+            fasilitas = [BuildingService._facility_for(tx, fid, area.building_id, FacilityScope.AREA)
+                         for fid in set(facility_ids)]
             tx.area_facilities.delete_where(area_id=area_id)
             tx.area_facilities.add_many(AreaFacility(area_id=area_id, facility_id=f.id) for f in fasilitas)
             return self.view(tx, area)
@@ -392,9 +371,8 @@ class AreaService:
                     tx.bookings.update(b.id, needs_relocation=True)
                     terdampak.append(b.code)
             area = tx.areas.update(area_id, status=status)
-            self.audit.record(
-                tx, actor.id, "area.status", "area", area_id, status=status, reason=reason, affected_bookings=terdampak
-            )
+            self.audit.record(tx, actor.id, "area.status", "area", area_id, status=status, reason=reason,
+                              affected_bookings=terdampak)
             return {**self.view(tx, area), "affected_bookings": terdampak}
 
     # titik area di denah (BE-14)
@@ -419,23 +397,13 @@ class AreaService:
                     continue
                 if area.status == AreaStatus.MAINTENANCE:
                     status = "maintenance"
-                elif tx.bookings.exists(
-                    lambda b: BookingRules.holds_slot(b, now) and b.start_at <= at < b.end_at, area_id=area.id
-                ):
+                elif tx.bookings.exists(lambda b: BookingRules.holds_slot(b, now) and b.start_at <= at < b.end_at,
+                                        area_id=area.id):
                     status = "occupied"
                 else:
                     status = "available"
-                titik.append(
-                    {
-                        "area_id": area.id,
-                        "code": area.code,
-                        "name": area.name,
-                        "type": area.type,
-                        "pos_x": area.pos_x,
-                        "pos_y": area.pos_y,
-                        "status": status,
-                    }
-                )
+                titik.append({"area_id": area.id, "code": area.code, "name": area.name, "type": area.type,
+                              "pos_x": area.pos_x, "pos_y": area.pos_y, "status": status})
             return {"floor": lantai, "has_plan": bool(lantai.plan_file), "at": at, "areas": titik}
 
     # pembantu

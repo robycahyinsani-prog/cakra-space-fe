@@ -48,7 +48,6 @@ TAGS = [
     {"name": "system", "description": "Health check dan tugas terjadwal"},
 ]
 
-
 def create_app(settings: Settings | None = None, store: JsonStore | None = None) -> FastAPI:
     settings = settings or get_settings()
     container = Container(settings, store)
@@ -89,11 +88,8 @@ def create_app(settings: Settings | None = None, store: JsonStore | None = None)
 
     @app.exception_handler(RateLimitExceeded)
     def rate_limited(request: Request, exc: RateLimitExceeded) -> JSONResponse:
-        return JSONResponse(
-            status_code=429,
-            headers={"Retry-After": "60"},
-            content={"detail": "Terlalu banyak percobaan. Tunggu satu menit lalu coba lagi."},
-        )
+        return JSONResponse(status_code=429, headers={"Retry-After": "60"},
+                            content={"detail": "Terlalu banyak percobaan. Tunggu satu menit lalu coba lagi."})
 
     @app.exception_handler(Exception)
     def server_error(request: Request, exc: Exception) -> JSONResponse:
@@ -101,23 +97,9 @@ def create_app(settings: Settings | None = None, store: JsonStore | None = None)
         log.exception("error tak terduga di %s %s", request.method, request.url.path)
         return JSONResponse(status_code=500, content={"detail": "Terjadi error di server"})
 
-    for router in (
-        system,
-        auth,
-        me,
-        staff,
-        buildings,
-        areas,
-        bookings,
-        payments,
-        finance,
-        access,
-        membership,
-        reports,
-        devices,
-    ):
+    for router in (system, auth, me, staff, buildings, areas, bookings, payments, finance, access, membership,
+                   reports, devices):
         app.include_router(router.router)
     return app
-
 
 app = create_app()

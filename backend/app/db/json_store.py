@@ -13,7 +13,6 @@ except ImportError:  # pragma: no cover
 
 from app.db.tables import Tables
 
-
 class JsonStore:
     """Database berbentuk satu berkas JSON.
 
