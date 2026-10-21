@@ -1,21 +1,26 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import Input from "../components/Input";
 import Button from "../components/Button";
 import Alert from "../components/Alert";
+import MailboxHint from "../components/auth/MailboxHint";
+import { api } from "../api";
+
+// nama field dari API dipetakan ke nama input di form ini
+const FIELD_API = { password_confirmation: "confirm" };
 
 export default function Register() {
+  // tidak ada pilihan role: registrasi selalu member, akun pengelola dibuat admin pusat
   const [form, setForm] = useState({
     name: "",
     email: "",
     password: "",
     confirm: "",
-    role:"member"
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState({ type: "", message: "" });
-  const navigate = useNavigate();
+  const [registeredEmail, setRegisteredEmail] = useState("");
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -59,49 +64,44 @@ export default function Register() {
     setLoading(true);
 
     try {
-      // Simulasi delay seperti request ke API
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      // Ambil daftar user yang sudah ada di localStorage
-      const users = JSON.parse(localStorage.getItem("users") || "[]");
-
-      // Cek apakah email sudah terdaftar
-      const existingUser = users.find((u) => u.email === form.email);
-      if (existingUser) {
-        setAlert({
-          type: "error",
-          message: "Email sudah terdaftar. Silakan login.",
-        });
-        setLoading(false);
-        return;
-      }
-
-      // Simpan user baru ke localStorage
-      users.push({
-        name: form.name,
-        email: form.email,
-        password: form.password, // CATATAN: di produksi harus di-hash di server
-        role: form.role,
-        createdAt: new Date().toISOString(),
-      });
-      localStorage.setItem("users", JSON.stringify(users));
-
-      // Tampilkan sukses
+      await api.auth.register(form);
+      setRegisteredEmail(form.email);
       setAlert({
         type: "success",
-        message: "Registrasi berhasil! Mengarahkan ke halaman login...",
+        message: "Akun berhasil dibuat. Link verifikasi sudah dikirim ke email Anda dan berlaku 24 jam.",
       });
-
-      // Redirect ke login setelah 1.5 detik
-      setTimeout(() => {
-        navigate("/login");
-      }, 1500);
     } catch (err) {
+      const fieldErrors = {};
+      for (const [field, pesan] of Object.entries(err.fieldErrors || {})) {
+        fieldErrors[FIELD_API[field] || field] = pesan;
+      }
+      setErrors(fieldErrors);
       setAlert({ type: "error", message: err.message || "Registrasi gagal" });
     } finally {
       setLoading(false);
     }
   };
+
+  if (registeredEmail) {
+    return (
+      <div className="min-h-screen bg-cream-50 flex items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
+          <h1 className="text-2xl font-bold text-center text-brown-900 mb-4">Cek Email Anda</h1>
+          <Alert type={alert.type} message={alert.message} />
+          <p className="text-sm text-brown-700">
+            Buka link verifikasi yang dikirim ke <strong>{registeredEmail}</strong>. Anda tetap bisa login sekarang,
+            tetapi booking baru bisa dibuat setelah email terverifikasi.
+          </p>
+          <MailboxHint email={registeredEmail} />
+          <Link to="/login" className="block mt-6">
+            <Button variant="primary" className="w-full">
+              Ke Halaman Login
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-cream-50 flex items-center justify-center p-4">
@@ -158,23 +158,6 @@ export default function Register() {
             error={errors.confirm}
             required
           />
-                    {/* Dropdown Pilihan Role */}
-          <div className="mb-4">
-            <label htmlFor="role" className="block text-sm font-medium text-brown-800 mb-1">
-              Daftar Sebagai <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="role"
-              name="role"
-              value={form.role}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-tan-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brown-500 bg-white text-brown-900"
-              required
-            >
-              <option value="member">Member (Penyewa)</option>
-              <option value="admin">Admin (Pengelola)</option>
-            </select>
-          </div>
 
           <Button
             type="submit"

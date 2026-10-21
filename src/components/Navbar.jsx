@@ -5,28 +5,30 @@ import { useAuth } from "../context/AuthContext";
 import Button from "./Button";
 
 export default function Navbar() {
-  const { isAuthenticated, user, logout } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const { isAuthenticated, isStaff, user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const handleLogout = () => {
-    logout();
+  // pindah ke beranda dulu supaya penjaga halaman tidak mengarahkan ke login
+  const handleLogout = async () => {
     navigate("/");
+    await logout();
   };
 
   const isActive = (path) => location.pathname === path;
 
-const navLinks = isAdmin
-  ? [
-      { to: "/admin-dashboard", label: "Admin Dashboard", icon: LayoutDashboard },
-    ]
-  : [
-      { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { to: "/buildings", label: "Gedung", icon: Building2 },
-      { to: "/my-bookings", label: "Booking Saya", icon: CalendarCheck },
-    ];
+  // staf (pengelola pusat, pengelola lokasi, resepsionis) memakai panel pengelola
+  const navLinks = isStaff
+    ? [
+        { to: "/admin-dashboard", label: "Dashboard Pengelola", icon: LayoutDashboard },
+        { to: "/buildings", label: "Gedung", icon: Building2 },
+      ]
+    : [
+        { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { to: "/buildings", label: "Gedung", icon: Building2 },
+        { to: "/my-bookings", label: "Booking Saya", icon: CalendarCheck },
+      ];
 
   return (
     <nav className="bg-white shadow-sm border-b border-cream-200 sticky top-0 z-50">

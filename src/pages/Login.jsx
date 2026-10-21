@@ -1,9 +1,15 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Input from "../components/Input";
 import Button from "../components/Button";
 import Alert from "../components/Alert";
 import { useAuth } from "../context/AuthContext";
+import { api } from "../api";
+
+// hanya path internal yang boleh jadi tujuan redirect
+function safeRedirect(value) {
+  return value && value.startsWith("/") && !value.startsWith("//") ? value : null;
+}
 
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -12,6 +18,8 @@ export default function Login() {
   const [alert, setAlert] = useState({ type: "", message: "" });
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const redirect = safeRedirect(params.get("redirect"));
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -42,46 +50,12 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // Simulasi delay seperti request ke API
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      // Ambil daftar user dari localStorage
-      const users = JSON.parse(localStorage.getItem("users") || "[]");
-
-      // Cari user yang cocok email & password
-      const foundUser = users.find(
-        (u) => u.email === form.email && u.password === form.password
-      );
-
-      if (!foundUser) {
-        throw new Error("Email atau password salah");
-      }
-
-      // Login berhasil → simpan ke AuthContext (termasuk role)
-      login("dummy-token-" + Date.now(), {
-        id: foundUser.email,
-        name: foundUser.name,
-        email: foundUser.email,
-        role: foundUser.role || "member",
-      });
-
-      setAlert({
-        type: "success",
-        message: "Login berhasil! Mengarahkan...",
-      });
-
-      // Redirect berdasarkan role
-      setTimeout(() => {
-        if (foundUser.role === "admin") {
-          navigate("/admin-dashboard");
-        } else {
-          navigate("/dashboard");
-        }
-      }, 1000);
-      
+      const result = await api.auth.login(form.email, form.password);
+      login(result);
+      // landing dari API: /dashboard untuk member, /admin-dashboard untuk staf
+      navigate(redirect || result.landing, { replace: true });
     } catch (err) {
       setAlert({ type: "error", message: err.message });
-    } finally {
       setLoading(false);
     }
   };
@@ -92,7 +66,9 @@ export default function Login() {
         <h1 className="text-2xl font-bold text-center text-brown-900 mb-2">
           Cakra Space
         </h1>
-        <p className="text-center text-brown-600 mb-6">Masuk ke akun Anda</p>
+        <p className="text-center text-brown-600 mb-6">
+          {redirect ? "Login dulu untuk melanjutkan" : "Masuk ke akun Anda"}
+        </p>
 
         <Alert type={alert.type} message={alert.message} />
 
@@ -118,6 +94,12 @@ export default function Login() {
             error={errors.password}
             required
           />
+
+          <div className="text-right -mt-2 mb-4">
+            <Link to="/forgot-password" className="text-sm text-brown-500 hover:underline">
+              Lupa password?
+            </Link>
+          </div>
 
           <Button
             type="submit"
