@@ -10,19 +10,22 @@ const ICONS = { virtual_account: Landmark, e_wallet: Smartphone, credit_card: Cr
 const POLL_MS = 4000;
 
 // pilih metode, tampilkan instruksi bayar, lalu pantau status sampai webhook gateway masuk
-export default function PaymentPanel({ booking, onChanged }) {
+export default function PaymentPanel({ booking, amount, onPay, title, onCancel, onChanged }) {
+  const initial = booking?.payment;
+  const total = amount ?? booking?.total ?? 0;
+
   // ringkasan dari data booking dipakai dulu supaya instruksi bayar langsung tampil
-  const [payment, setPayment] = useState(() => (booking.payment?.status === "pending" ? booking.payment : null));
+  const [payment, setPayment] = useState(() => (initial?.status === "pending" ? initial : null));
   const [method, setMethod] = useState("virtual_account");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
   // pembayaran yang sudah dibuat sebelumnya dimuat lengkap (butuh gateway_ref)
   useEffect(() => {
-    if (booking.payment?.status === "pending") {
-      api.payments.get(booking.payment.id).then(setPayment, setError);
+    if (initial?.status === "pending") {
+      api.payments.get(initial.id).then(setPayment, setError);
     }
-  }, [booking.payment]);
+  }, [initial]);
 
   // status dicek berkala selama masih pending
   useEffect(() => {
@@ -45,8 +48,12 @@ export default function PaymentPanel({ booking, onChanged }) {
     setBusy(true);
     setError(null);
     try {
-      const res = await api.payments.payBooking(booking.id, method);
-      setPayment(res.payment);
+      const res = onPay ? await onPay(method) : await api.payments.payBooking(booking.id, method);
+      if (res.payment) {
+        setPayment(res.payment);
+      } else {
+        onChanged();
+      }
     } catch (err) {
       setError(err);
     } finally {
@@ -78,7 +85,7 @@ export default function PaymentPanel({ booking, onChanged }) {
         </div>
 
         <p className="text-sm text-brown-600">Jumlah yang harus dibayar</p>
-        <p className="text-2xl font-bold text-brown-900 mb-4">{Format.rupiah(payment.amount ?? booking.total)}</p>
+        <p className="text-2xl font-bold text-brown-900 mb-4">{Format.rupiah(payment.amount ?? total)}</p>
 
         {payment.va_number && (
           <div className="bg-cream-50 border border-cream-200 rounded-lg p-4 mb-4">
@@ -135,7 +142,7 @@ export default function PaymentPanel({ booking, onChanged }) {
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-cream-200 p-5">
-      <h2 className="font-semibold text-brown-900 mb-1">Pilih Metode Pembayaran</h2>
+      <h2 className="font-semibold text-brown-900 mb-1">{title || "Pilih Metode Pembayaran"}</h2>
       {payment && payment.status !== "success" && (
         <p className="text-sm text-red-700 mb-2">Pembayaran sebelumnya gagal atau kedaluwarsa. Silakan coba lagi.</p>
       )}
@@ -164,9 +171,16 @@ export default function PaymentPanel({ booking, onChanged }) {
         })}
       </div>
       {error && <p className="text-sm text-red-700 mb-3">{error.message}</p>}
-      <Button onClick={bayar} loading={busy} className="w-full">
-        Bayar {Format.rupiah(booking.total)}
-      </Button>
+      <div className="flex gap-2">
+        {onCancel && (
+          <Button variant="secondary" onClick={onCancel} disabled={busy} className="flex-1">
+            Batal
+          </Button>
+        )}
+        <Button onClick={bayar} loading={busy} className="flex-1">
+          Bayar {Format.rupiah(total)}
+        </Button>
+      </div>
     </div>
   );
 }

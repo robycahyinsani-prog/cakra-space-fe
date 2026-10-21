@@ -37,8 +37,30 @@ export default class ApiClient {
     return data;
   }
 
-  async blob(url) {
-    const { data } = await this.http.get(url, { responseType: "blob" });
+  async put(url, body) {
+    const { data } = await this.http.put(url, body);
+    return data;
+  }
+
+  async patch(url, body) {
+    const { data } = await this.http.patch(url, body);
+    return data;
+  }
+
+  async delete(url) {
+    const { data } = await this.http.delete(url);
+    return data;
+  }
+
+  async upload(url, file) {
+    const form = new FormData();
+    form.append("file", file);
+    const { data } = await this.http.put(url, form);
+    return data;
+  }
+
+  async blob(url, params) {
+    const { data } = await this.http.get(url, { params, responseType: "blob" });
     return data;
   }
 }

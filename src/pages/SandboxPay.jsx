@@ -35,7 +35,7 @@ export default function SandboxPay() {
       </p>
       {alert.message ? (
         <Button className="w-full" onClick={() => navigate(-1)}>
-          Kembali ke Booking
+          Kembali
         </Button>
       ) : (
         <div className="flex gap-2">

@@ -13,6 +13,7 @@ import BuildingDetail from "./pages/BuildingDetail";
 import BookingForm from "./pages/BookingForm";
 import BookingConfirm from "./pages/BookingConfirm";
 import MyBookings from "./pages/MyBookings";
+import Membership from "./pages/Membership";
 import AdminDashboard from "./pages/AdminDashboard";
 import SandboxPay from "./pages/SandboxPay";
 import NotFound from "./pages/NotFound";
@@ -39,6 +40,7 @@ export default function App() {
 
         <Route path="/booking/confirm/:id" element={member(<BookingConfirm />)} />
         <Route path="/my-bookings" element={member(<MyBookings />)} />
+        <Route path="/membership" element={member(<Membership />)} />
         <Route path="/dashboard" element={member(<Dashboard />)} />
         <Route path="/admin-dashboard" element={staff(<AdminDashboard />)} />
         <Route path="/change-password" element={<RequireAuth><ChangePassword /></RequireAuth>} />

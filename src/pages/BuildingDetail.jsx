@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, CalendarDays, Clock, MapPin, Users } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Button from "../components/Button";
 import PageState from "../components/common/PageState";
 import StatusBadge from "../components/common/StatusBadge";
+import FloorPlanMap from "../components/building/FloorPlanMap";
 import useResource from "../hooks/useResource";
 import Format from "../utils/Format";
 import { AREA_TYPES } from "../utils/labels";
@@ -42,7 +44,15 @@ export default function BuildingDetail() {
 }
 
 function BuildingBody({ detail, areas }) {
-  const { building, operating_hours: hours, facilities } = detail;
+  const { building, operating_hours: hours, facilities, floors } = detail;
+  const [filterType, setFilterType] = useState("");
+  const [minCap, setMinCap] = useState("");
+
+  const filteredAreas = areas.filter((a) => {
+    if (filterType && a.type !== filterType) return false;
+    if (minCap && a.capacity < Number(minCap)) return false;
+    return true;
+  });
 
   return (
     <>
@@ -98,18 +108,50 @@ function BuildingBody({ detail, areas }) {
         </div>
       </div>
 
-      {/* Daftar Ruang */}
-      <h2 className="text-xl font-bold text-brown-900 mb-4">Ruang Tersedia ({areas.length})</h2>
+      {/* Denah Lantai Interaktif (K5-US-003.4) */}
+      <FloorPlanMap floors={floors} areas={areas} editable={false} />
 
-      {areas.length === 0 ? (
-        <p className="text-brown-600">Belum ada ruang di gedung ini.</p>
+      {/* Daftar Ruang & Filter (K5-US-004.1) */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <h2 className="text-xl font-bold text-brown-900">Ruang Tersedia ({filteredAreas.length})</h2>
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            aria-label="Filter tipe area"
+            className="px-3 py-1.5 border border-tan-300 rounded-lg bg-white text-brown-800"
+          >
+            <option value="">Semua Tipe Area</option>
+            {Object.entries(AREA_TYPES).map(([k, label]) => (
+              <option key={k} value={k}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <input
+            type="number"
+            min={1}
+            value={minCap}
+            onChange={(e) => setMinCap(e.target.value)}
+            placeholder="Min. kapasitas"
+            aria-label="Minimal kapasitas"
+            className="w-36 px-3 py-1.5 border border-tan-300 rounded-lg bg-white text-brown-800"
+          />
+        </div>
+      </div>
+
+      {filteredAreas.length === 0 ? (
+        <p className="text-brown-600">Tidak ada ruang yang sesuai dengan filter.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {areas.map((area) => (
+          {filteredAreas.map((area) => (
             <div key={area.id} className="bg-white rounded-xl shadow-sm border border-cream-200 p-5 flex flex-col">
-              <span className={`text-xs px-2 py-1 rounded-full self-start mb-3 ${TYPE_BADGE[area.type]}`}>
-                {AREA_TYPES[area.type]}
-              </span>
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <span className={`text-xs px-2 py-1 rounded-full ${TYPE_BADGE[area.type]}`}>
+                  {AREA_TYPES[area.type]}
+                </span>
+                <span className="text-xs font-mono text-brown-500">{area.code}</span>
+              </div>
 
               <h3 className="font-semibold text-brown-900 mb-1">{area.name}</h3>
               <p className="text-xs text-brown-500 mb-2">{area.floor_name}</p>

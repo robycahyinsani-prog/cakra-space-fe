@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
-import { LayoutDashboard, Building2, CalendarCheck, Menu, X, LogOut, KeyRound } from "lucide-react";
+import { LayoutDashboard, Building2, CalendarCheck, Sparkles, Menu, X, LogOut, KeyRound } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import Button from "./Button";
 
@@ -28,6 +28,7 @@ export default function Navbar() {
         { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
         { to: "/buildings", label: "Gedung", icon: Building2 },
         { to: "/my-bookings", label: "Booking Saya", icon: CalendarCheck },
+        { to: "/membership", label: "Membership", icon: Sparkles },
       ];
 
   return (

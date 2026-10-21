@@ -28,4 +28,13 @@ export default class BookingApi {
   mine(tab, page = 1, size = 10) {
     return this.client.get("/me/bookings", { tab, page, size });
   }
+
+  // undangan tamu rapat dengan QR sekali pakai (K5-US-006.2)
+  guests(bookingId) {
+    return this.client.get(`/bookings/${bookingId}/guests`);
+  }
+
+  inviteGuests(bookingId, guests) {
+    return this.client.post(`/bookings/${bookingId}/guests`, { guests });
+  }
 }

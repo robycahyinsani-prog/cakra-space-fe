@@ -18,6 +18,20 @@ const STATUS = {
   draft: ["Draf", "bg-yellow-100 text-yellow-800"],
   inactive: ["Nonaktif", "bg-gray-200 text-gray-700"],
   frozen: ["Dibekukan", "bg-blue-100 text-blue-800"],
+  not_subscribed: ["Belum Aktif", "bg-gray-200 text-gray-700"],
+  available: ["Tersedia", "bg-green-100 text-green-800"],
+  maintenance: ["Perawatan", "bg-orange-100 text-orange-800"],
+  granted: ["Diizinkan", "bg-green-100 text-green-800"],
+  denied: ["Ditolak", "bg-red-100 text-red-700"],
+  online: ["Online", "bg-green-100 text-green-800"],
+  offline: ["Offline", "bg-red-100 text-red-700"],
+  revoked: ["Dicabut", "bg-gray-200 text-gray-700"],
+  delivered: ["Terkirim", "bg-blue-100 text-blue-800"],
+  done: ["Selesai", "bg-green-100 text-green-800"],
+  held: ["Ditahan", "bg-yellow-100 text-yellow-800"],
+  returned: ["Dikembalikan", "bg-green-100 text-green-800"],
+  approved: ["Disetujui", "bg-green-100 text-green-800"],
+  overdue: ["Jatuh Tempo", "bg-red-100 text-red-700"],
 };
 
 export default function StatusBadge({ status, className = "" }) {

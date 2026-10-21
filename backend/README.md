@@ -74,8 +74,9 @@ Tangkuban dan Braga. Seed juga membuat riwayat booking 45 hari, invoice, log aks
 | BuildingList, BuildingDetail | `GET /buildings`, `GET /buildings/{id}`, `GET /buildings/{id}/areas` |
 | BookingForm, BookingConfirm | `GET /buildings/{id}/slots`, `POST /bookings/quote`, `POST /bookings`, `POST /payments` |
 | MyBookings | `GET /me/bookings?tab=upcoming` dan `tab=history`, `POST /bookings/{id}/cancel`, `/reschedule` |
+| Membership | `GET /plans`, `GET /me/subscription`, `POST /subscriptions`, `/freeze`, `/unfreeze`, `POST /payments` |
 | Dashboard member | `GET /me/summary`, `GET /me/access-qr`, `GET /me/invoices` |
-| AdminDashboard | `GET /manage/reports/summary`, `GET /manage/bookings`, `GET /manage/refunds` |
+| AdminDashboard | `/manage/reports/summary`, `/manage/bookings`, `/manage/refunds`, `/buildings`, `/areas`, `/manage/plans`, `/manage/vouchers`, `/manage/devices`, `/manage/access-logs` |
 
 ## Tugas terjadwal
 

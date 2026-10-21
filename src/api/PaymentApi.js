@@ -12,6 +12,29 @@ export default class PaymentApi {
     });
   }
 
+  paySubscription(subscriptionId, method) {
+    return this.client.post("/payments", {
+      purpose: "subscription",
+      reference_id: subscriptionId,
+      method,
+    });
+  }
+
+  renewSubscription(method) {
+    return this.client.post("/payments", {
+      purpose: "subscription_renewal",
+      method,
+    });
+  }
+
+  changePlan(planId, method) {
+    return this.client.post("/payments", {
+      purpose: "subscription_change",
+      plan_id: planId,
+      method,
+    });
+  }
+
   get(id) {
     return this.client.get(`/payments/${id}`);
   }
