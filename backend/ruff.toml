@@ -1,0 +1,11 @@
+line-length = 120
+target-version = "py312"
+extend-exclude = [".venv", "data"]
+
+[lint]
+select = ["E", "F", "I", "B", "UP", "C4"]
+ignore = ["B008"]  # Depends() memang dipanggil di default argument
+
+[lint.per-file-ignores]
+# assert di test dibiarkan satu baris supaya mudah dibaca
+"tests/*" = ["E501"]

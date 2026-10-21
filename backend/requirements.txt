@@ -1,0 +1,12 @@
+fastapi==0.141.1
+uvicorn[standard]==0.54.0
+pydantic==2.13.5
+email-validator==2.3.0
+python-dotenv==1.2.3
+python-multipart==0.0.32
+bcrypt==5.0.0
+PyJWT==2.15.1
+slowapi==0.1.10
+tzdata==2026.5
+fpdf2==2.8.9
+openpyxl==3.1.5

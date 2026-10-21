@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.env
+# berkas data JSON lokal dibuat ulang lewat python -m app.seed
+data/*
+!data/.gitkeep
