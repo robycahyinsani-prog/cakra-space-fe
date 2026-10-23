@@ -4,4 +4,5 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  base: process.env.BASE_PATH || (process.env.GITHUB_ACTIONS ? '/cakra-space-fe/' : '/'),
 })
